@@ -8,7 +8,7 @@ Se ha completado la **Fase 4** del sistema, implementando el **Motor de Recupera
 
 ### ✨ Novedades y Componentes Implementados
 - **Motor de Recuperación Híbrida (`src/retrieval/hybrid.py`):** Combina la recuperación semántica densa de fragmentos con la exploración topológica de documentos relacionados en el grafo de conocimiento.
-- **Cliente LLM Local Multi-backend (`src/generation/local_llm.py`):** Soporte unificado para Ollama (`/api/generate`) y el servidor HTTP nativo de `llama.cpp` (`/completion`), garantizando la soberanía de datos *on-premise*. Se ha incorporado la recomendación de modelos ultraligeros (`ggml-org/gemma-3-1b-it-GGUF`) para pruebas locales eficientes en hardware de bajos recursos.
+- **Cliente LLM Local Multi-backend (`src/generation/local_llm.py`):** Soporte unificado para Ollama (`/api/generate`) y el servidor HTTP nativo de `llama.cpp` (`/completion`), garantizando la soberanía de datos *on-premise*. Se ha incorporado la recomendación de modelos ultraligeros (`ggml-org/gemma-3-1b-it-GGUF`) para pruebas locales eficientes en hardware de bajos recursos. Se ha añadido un parámetro de `timeout` configurable (por defecto 300 segundos) para prevenir interrupciones por tiempo de espera en consultas locales a `llama-server`.
 - **Pruebas Unitarias (`tests/test_retrieval.py`, `tests/test_local_llm.py`):** Validación de recuperación y generación con mocks.
 
 ### 🧪 Comandos de Prueba Utilizados

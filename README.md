@@ -124,7 +124,10 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
         # Para producción con mayor hardware:
         llama-server -hf bartowski/Qwen2.5-3B-Instruct-GGUF:Q4_K_S -c 4096 --port 8080
         ```
-        *Nota:* El cliente `LocalLLMClient` en `src/generation/local_llm.py` soporta ambos backends configurando `backend="ollama"` o `backend="llamacpp"`.
+         *Nota:* El cliente `LocalLLMClient` en `src/generation/local_llm.py` soporta ambos backends configurando `backend="ollama"` o `backend="llamacpp"`. Permite configurar el tiempo de espera mediante el parámetro `timeout` (por defecto 300 segundos):
+         ```python
+         client = LocalLLMClient(backend="llamacpp", base_url="http://localhost:8080", timeout=300)
+         ```
 2. **Clonación y Configuración en Producción:**
    ```bash
    git clone <url-repositorio> grafrac
