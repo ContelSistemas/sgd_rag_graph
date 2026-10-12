@@ -81,7 +81,19 @@ Para configurar y probar el proyecto en un entorno local de desarrollo:
    PYTHONPATH=. pytest tests/ -v
    ```
 
-### 4. Demostración de Integración E2E y Consultas LLM Local (`run_demo.py`)
+### 5. Ejecución del Servidor API REST (FastAPI - Fase 6)
+
+Para levantar el servidor API REST en local y exponer los endpoints de consulta híbrida y indexación:
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Endpoints disponibles:
+- `GET /health`: Estado de salud del servicio.
+- `POST /index`: Ejecuta la indexación de los documentos del SGD.
+- `POST /query`: Realiza una consulta híbrida (vectorial + grafo) y síntesis con LLM local.
+
 
 Para ejecutar la demostración completa del sistema (Fase 5) indexando la documentación del SGD, realizando recuperación híbrida y consultando al LLM local (ej. Llama.cpp en `http://localhost:8080`):
 
@@ -172,3 +184,4 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
 3. **Fase 3:** Configuración del sistema de chunking jerárquico y almacenamiento vectorial local.
 4. **Fase 4:** Desarrollo del motor de recuperación híbrida (Vector + Grafo) y conexión con LLM local. *(Completado)*
 5. **Fase 5:** Pruebas de integración sobre documentación real del SGD y optimización de rendimiento. *(Completado)*
+6. **Fase 6:** Capa de Servicio (API REST con FastAPI) y Orquestación. *(Completado)*

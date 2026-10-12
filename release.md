@@ -1,5 +1,28 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.6.0-alpha (Fase 6: Capa de Servicio - API REST con FastAPI)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se ha completado la **Fase 6** del proyecto, implementando la **Capa de Servicio (API REST con FastAPI en `src/api/main.py`)** para exponer los endpoints de salud (`/health`), indexación (`/index`) y consulta híbrida con generación LLM local (`/query`), junto con pruebas unitarias (`tests/test_api.py`) utilizando `TestClient`.
+
+### ✨ Novedades y Componentes Implementados
+- **API REST FastAPI (`src/api/main.py`):** Endpoints robustos para ingesta, recuperación híbrida y síntesis LLM local *on-premise*.
+- **Pruebas Unitarias de API (`tests/test_api.py`):** Cobertura de tests para todos los endpoints utilizando `TestClient` de FastAPI y mocks.
+- **Actualización de Dependencias (`requirements.txt`):** Inclusión de `fastapi` y `uvicorn`.
+
+### 🧪 Comandos de Prueba Utilizados
+1. **Ejecución de Pruebas Unitarias (incluyendo API):**
+   ```bash
+   PYTHONPATH=. pytest tests/ -v
+   ```
+2. **Ejecución del Servidor API:**
+   ```bash
+   uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
+---
+
 ## v0.5.0-alpha (Fase 5: Pruebas de Integración E2E y Script de Demostración)
 **Fecha:** Octubre 2026
 
