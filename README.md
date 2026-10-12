@@ -86,7 +86,7 @@ Para configurar y probar el proyecto en un entorno local de desarrollo:
 Para levantar el servidor API REST en local y exponer los endpoints de consulta híbrida y indexación:
 
 ```bash
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --ws none
 ```
 
 Endpoints disponibles:

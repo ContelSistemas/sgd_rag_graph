@@ -18,7 +18,7 @@ Se ha completado la **Fase 6** del proyecto, implementando la **Capa de Servicio
    ```
 2. **Ejecución del Servidor API:**
    ```bash
-   uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+   uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --ws none
    ```
 
 ---
