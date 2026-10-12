@@ -1,0 +1,33 @@
+mindmap
+  root((Graph RAG SGD))
+    Ingesta y Procesamiento
+      Parser Markdown
+        Extracción Frontmatter
+        Limpieza de texto
+      Chunking Estructural
+        División por encabezados
+        Preservación de contexto
+      Gestor de Grafo
+        Extracción de links [[wiki]]
+        Base de datos de relaciones NetworkX
+    Indexación y Almacenamiento
+      Embeddings Locales
+        Modelo embebido en local Ollama/Llama.cpp
+      Base de Datos Vectorial
+        Chroma / DuckDB / FAISS
+      Almacenamiento de Metadatos
+        Rutas de archivos y URIs del SGD
+    Motor de Recuperación Híbrido
+      Búsqueda Vectorial Semántica
+        Similitud de coseno (Dense Retrieval)
+      Búsqueda Relacional en Grafo
+        Nodos vecinos y dependencias cruzadas
+      Fusión y Re-ranking
+        Ordenación y filtrado de contexto
+    Capa de Generación e Interfaz
+      LLM Local
+        Inferencia (Gemma / Qwen / Llama)
+      Capa de Presentación
+        API Python FastAPI / n8n / Telegram Bot
+      Notas para Documentación
+        Exportación limpia a formato compatible
