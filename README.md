@@ -81,26 +81,30 @@ Para configurar y probar el proyecto en un entorno local de desarrollo:
    PYTHONPATH=. pytest tests/ -v
    ```
 
-### 3. Validación y Pruebas con Documentos Reales (`data/`)
+### 4. Demostración de Integración E2E y Consultas LLM Local (`run_demo.py`)
 
-Para probar el parser de Markdown y la extracción de metadatos/enlaces wiki sobre los documentos reales ubicados en el directorio `data/`:
+Para ejecutar la demostración completa del sistema (Fase 5) indexando la documentación del SGD, realizando recuperación híbrida y consultando al LLM local (ej. Llama.cpp en `http://localhost:8080`):
+
+```bash
+python3 run_demo.py
+```
+
+Para realizar consultas personalizadas o pruebas puntuales con el cliente LLM local especificando un tiempo de espera (`timeout`):
 
 ```bash
 python3 -c "
-from pathlib import Path
-from src.ingestion.parser import MarkdownParser
+from src.generation.local_llm import LocalLLMClient
 
-parser = MarkdownParser()
-data_dir = Path('data')
-for md_file in data_dir.glob('*.md'):
-    res = parser.parse_file(md_file)
-    print(f'Archivo: {md_file.name}')
-    print(f'  - Título: {res[\"frontmatter\"].get(\"title\")}')
-    print(f'  - Enlaces wiki encontrados: {len(res[\"wiki_links\"])}')
-    print(f'  - Primeros 3 enlaces: {[l[\"target\"] for l in res[\"wiki_links\"][:3]]}')
-    print('-' * 40)
+llm = LocalLLMClient(backend='llamacpp', base_url='http://localhost:8080', timeout=300)
+context = [{
+    'content': 'La OLT1 se bloqueó a las 03:45 AM del 12 de octubre de 2026 debido a un fallo de alimentación en el rack principal.',
+    'metadata': {'title': 'Registro de Incidencias OLT', 'source_path': 'data/incidencias_red.md'}
+}]
+response = llm.generate_response('¿Cuándo se bloqueó la OLT1?', context)
+print('Respuesta:\n', response)
 "
 ```
+
 
 ### 2. Entorno de Producción (Host Definitivo On-Premise)
 
@@ -166,5 +170,5 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
 1. **Fase 1:** Diseño arquitectónico, directrices y estructuración documental. *(Completado)*
 2. **Fase 2:** Implementación del Parser de Markdown, extracción de enlaces wiki y construcción del grafo con NetworkX.
 3. **Fase 3:** Configuración del sistema de chunking jerárquico y almacenamiento vectorial local.
-4. **Fase 4:** Desarrollo del motor de recuperación híbrida (Vector + Grafo) y conexión con LLM local.
-5. **Fase 5:** Pruebas de integración sobre documentación real del SGD y optimización de rendimiento.
+4. **Fase 4:** Desarrollo del motor de recuperación híbrida (Vector + Grafo) y conexión con LLM local. *(Completado)*
+5. **Fase 5:** Pruebas de integración sobre documentación real del SGD y optimización de rendimiento. *(Completado)*

@@ -1,5 +1,36 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.5.0-alpha (Fase 5: Pruebas de Integración E2E y Script de Demostración)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se ha completado la **Fase 5** del sistema, implementando el script de demostración de integración End-to-End (`run_demo.py`), validando la indexación real del SGD, la recuperación híbrida y la conectividad con el servidor LLM local (`llama.cpp` en `http://localhost:8080`) con timeout ampliado y configurable (por defecto 300 segundos).
+
+### ✨ Novedades y Componentes Implementados
+- **Script E2E (`run_demo.py`):** Orquestador completo para pruebas de integración sobre la documentación real en `data/`.
+- **Configuración de Timeout Robusta (`src/generation/local_llm.py`):** Soporte de timeout ajustable (`timeout=300` o superior) para evitar caídas ante consultas largas en servidores LLM locales.
+- **Documentación de Pruebas:** Guía completa de comandos de validación y pruebas unitarias/E2E en el `README.md`.
+
+### 🧪 Comandos de Prueba Utilizados
+1. **Ejecución de Pruebas Unitarias:**
+   ```bash
+   PYTHONPATH=. pytest tests/ -v
+   ```
+2. **Ejecución de Demostración E2E (`run_demo.py`):**
+   ```bash
+   python3 run_demo.py
+   ```
+3. **Consulta Puntual al LLM Local:**
+   ```bash
+   python3 -c "
+   from src.generation.local_llm import LocalLLMClient
+   llm = LocalLLMClient(backend='llamacpp', base_url='http://localhost:8080', timeout=300)
+   print(llm.generate_response('¿Cuándo se bloqueó la OLT?', [{'content': 'Olt bloqueada el 12 de octubre.', 'metadata': {'title': 'Incidencia'}}]))
+   "
+   ```
+
+---
+
 ## v0.4.0-alpha (Fase 4: Recuperación Híbrida y Generación Local - Ollama & Llama.cpp)
 **Fecha:** Octubre 2026
 
