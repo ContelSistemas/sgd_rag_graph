@@ -166,8 +166,11 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
    source venv/bin/activate
    pip install -r requirements.txt
    ```
-3. **Persistencia y Permisos:**
-   - Asegurar permisos adecuados en las carpetas `data/` y `config/` para que el servicio tenga acceso de lectura a los documentos del SGD y escritura para el grafo/vector store.
+3. **Persistencia y Permisos (⚠️ IMPORTANTE para Producción):**
+   - Asegurar permisos de lectura y escritura en la carpeta `data/` (para evitar errores de base de datos de lectura en ChromaDB y el grafo JSON):
+     ```bash
+     sudo chown -R $USER:$USER data/
+     ```
 4. **Ejecución como Servicio (Systemd):**
    Crear un archivo de servicio en `/etc/systemd/system/grafrac.service`:
    ```ini

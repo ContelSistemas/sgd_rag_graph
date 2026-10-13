@@ -4,11 +4,12 @@
 **Fecha:** Octubre 2026
 
 ### 📋 Resumen de la Versión
-Se ha completado la **Fase 8A** del proyecto, implementando la **Interfaz Web de Usuario con Streamlit (`src/ui/app.py`)** para permitir a los operadores e ingenieros interactuar visualmente con el sistema Graph RAG del SGD, configurar parámetros de recuperación y backend LLM, ejecutar la indexación en tiempo real y consultar el grafo de conocimiento.
+Se ha completado la **Fase 8A** del proyecto, implementando la **Interfaz Web de Usuario con Streamlit (`src/ui/app.py`)** para permitir a los operadores e ingenieros interactuar visualmente con el sistema Graph RAG del SGD, configurar parámetros de recuperación y backend LLM, ejecutar la indexación en tiempo real y consultar el grafo de conocimiento. Se han validado todas las dependencias vectoriales (`chromadb`, `sentence-transformers`) y establecido las pautas de permisos para entornos de producción.
 
 ### ✨ Novedades y Componentes Implementados
 - **Interfaz Web Streamlit (`src/ui/app.py`):** Panel de control lateral con configuración de backend (Ollama / Llama.cpp), control de top-K y radio de grafo, botón de reindexación y visualización de estadísticas del grafo. Chat conversacional con despliegue de fuentes y referencias a ficheros originales del SGD.
-- **Actualización de Dependencias (`requirements.txt`):** Inclusión de `streamlit`.
+- **Validación Vectorial Completa:** Integración probada con ChromaDB y embeddings locales SentenceTransformers (`all-MiniLM-L6-v2`).
+- **Nota de Producción (Permisos):** Recordatorio de configuración de permisos sobre `data/` para evitar bloqueos de base de datos en despliegues *on-premise*.
 
 ### 🧪 Comandos de Prueba Utilizados
 1. **Ejecución de la Interfaz Web:**
