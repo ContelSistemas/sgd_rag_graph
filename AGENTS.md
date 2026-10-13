@@ -36,4 +36,4 @@ Este documento establece las normas, los objetivos y la hoja de ruta técnica qu
 
 ---
 
-*Última actualización:* Fase 4 completada (Recuperación Híbrida Vector + Grafo, Cliente LLM Local con soporte Ollama y llama.cpp, y Pruebas Unitarias implementados).
+*Última actualización:* Fase 8A completada (Interfaz Web Visual con Streamlit y Panel de Control).

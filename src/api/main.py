@@ -36,6 +36,14 @@ class IndexResponse(BaseModel):
     status: str
     total_chunks: int
 
+@app.get("/")
+def root():
+    return {
+        "message": "Bienvenido a la API REST de Graph RAG para SGD",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "Graph RAG SGD API"}

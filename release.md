@@ -1,5 +1,51 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.8.0-alpha (Fase 8A: Interfaz Web Visual con Streamlit)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se ha completado la **Fase 8A** del proyecto, implementando la **Interfaz Web de Usuario con Streamlit (`src/ui/app.py`)** para permitir a los operadores e ingenieros interactuar visualmente con el sistema Graph RAG del SGD, configurar parámetros de recuperación y backend LLM, ejecutar la indexación en tiempo real y consultar el grafo de conocimiento.
+
+### ✨ Novedades y Componentes Implementados
+- **Interfaz Web Streamlit (`src/ui/app.py`):** Panel de control lateral con configuración de backend (Ollama / Llama.cpp), control de top-K y radio de grafo, botón de reindexación y visualización de estadísticas del grafo. Chat conversacional con despliegue de fuentes y referencias a ficheros originales del SGD.
+- **Actualización de Dependencias (`requirements.txt`):** Inclusión de `streamlit`.
+
+### 🧪 Comandos de Prueba Utilizados
+1. **Ejecución de la Interfaz Web:**
+   ```bash
+   streamlit run src/ui/app.py
+   ```
+
+---
+
+## v0.7.0-alpha (Fase 7: Contenerización Docker, Persistencia de Grafo y Chat CLI Interactivo)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se ha completado la **Fase 7** del proyecto, implementando la **Persistencia del Grafo de Conocimiento** en disco (`data/knowledge_graph.json`), la **Contenerización con Docker y Docker Compose** (`Dockerfile`, `docker-compose.yml`) para despliegues *on-premise* reproducibles, y el **Cliente de Chat Interactivo por Línea de Comandos** (`run_chat.py`) para consultas conversacionales directas.
+
+### ✨ Novedades y Componentes Implementados
+- **Persistencia de Grafo (`src/graph/manager.py`):** Guardado y carga automática del grafo NetworkX en formato JSON (`data/knowledge_graph.json`), evitando recomputar relaciones entre reinicios.
+- **Cliente de Chat Interactivo (`run_chat.py`):** Interfaz CLI conversacional para realizar consultas híbridas y visualizar respuestas y fuentes del SGD.
+- **Contenerización Docker (`Dockerfile`, `docker-compose.yml`):** Configuración lista para producción *on-premise* con volúmenes persistentes para `data/`.
+- **Pruebas Unitarias Ampliadas (`tests/test_graph.py`):** Cobertura de tests para la persistencia del grafo.
+
+### 🧪 Comandos de Prueba Utilizados
+1. **Ejecución de Pruebas Unitarias:**
+   ```bash
+   PYTHONPATH=. pytest tests/ -v
+   ```
+2. **Ejecución del Chat Interactivo CLI:**
+   ```bash
+   python3 run_chat.py llamacpp http://localhost:8080
+   ```
+3. **Despliegue con Docker Compose:**
+   ```bash
+   docker-compose up --build
+   ```
+
+---
+
 ## v0.6.0-alpha (Fase 6: Capa de Servicio - API REST con FastAPI)
 **Fecha:** Octubre 2026
 

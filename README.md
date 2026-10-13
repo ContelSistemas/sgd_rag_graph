@@ -81,7 +81,21 @@ Para configurar y probar el proyecto en un entorno local de desarrollo:
    PYTHONPATH=. pytest tests/ -v
    ```
 
-### 5. Ejecución del Servidor API REST (FastAPI - Fase 6)
+### 6. Ejecución del Chat CLI Interactivo (Fase 7)
+
+Para realizar consultas conversacionales interactivas directamente desde la terminal utilizando el motor de recuperación híbrida y el LLM local:
+
+```bash
+python3 run_chat.py llamacpp http://localhost:8080
+```
+
+### 8. Ejecución de la Interfaz Web Visual (Streamlit - Fase 8A)
+
+Para iniciar la interfaz gráfica de usuario web para consultas interactivas, configuración y reindexación:
+
+```bash
+streamlit run src/ui/app.py
+```
 
 Para levantar el servidor API REST en local y exponer los endpoints de consulta híbrida y indexación:
 
@@ -180,8 +194,10 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
 ## 🚀 Hoja de Ruta
 
 1. **Fase 1:** Diseño arquitectónico, directrices y estructuración documental. *(Completado)*
-2. **Fase 2:** Implementación del Parser de Markdown, extracción de enlaces wiki y construcción del grafo con NetworkX.
-3. **Fase 3:** Configuración del sistema de chunking jerárquico y almacenamiento vectorial local.
+2. **Fase 2:** Implementación del Parser de Markdown, extracción de enlaces wiki y construcción del grafo con NetworkX. *(Completado)*
+3. **Fase 3:** Configuración del sistema de chunking jerárquico y almacenamiento vectorial local. *(Completado)*
 4. **Fase 4:** Desarrollo del motor de recuperación híbrida (Vector + Grafo) y conexión con LLM local. *(Completado)*
 5. **Fase 5:** Pruebas de integración sobre documentación real del SGD y optimización de rendimiento. *(Completado)*
 6. **Fase 6:** Capa de Servicio (API REST con FastAPI) y Orquestación. *(Completado)*
+7. **Fase 7:** Persistencia del Grafo, Interfaz de Chat CLI Interactiva y Contenerización Docker/Docker Compose. *(Completado)*
+8. **Fase 8A:** Interfaz Web Visual con Streamlit y Panel de Control. *(Completado)*

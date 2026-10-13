@@ -1,4 +1,6 @@
 import pytest
+import tempfile
+from pathlib import Path
 from src.graph.manager import KnowledgeGraphManager
 
 def test_knowledge_graph_operations():
@@ -22,3 +24,16 @@ def test_knowledge_graph_operations():
     subgraph_ctx = gm.get_subgraph_context("doc1", radius=1)
     assert len(subgraph_ctx["nodes"]) == 2
     assert len(subgraph_ctx["edges"]) == 1
+
+def test_knowledge_graph_persistence():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        json_path = str(Path(tmpdir) / "graph.json")
+        gm = KnowledgeGraphManager(persist_path=json_path)
+        gm.add_document_node("docA", {"title": "Doc A"})
+        gm.add_relation("docA", "docB", relation_type="wiki_link")
+        
+        # Load in a new manager
+        gm2 = KnowledgeGraphManager(persist_path=json_path)
+        assert gm2.graph.has_node("docA")
+        assert gm2.graph.has_node("docB")
+        assert gm2.graph.has_edge("docA", "docB")
