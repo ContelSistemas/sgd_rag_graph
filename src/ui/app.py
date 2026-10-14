@@ -54,6 +54,8 @@ with tab_chat:
                 try:
                     indexer = SGDIndexer(data_dir="data", vector_dir="data/vectorstore")
                     total = indexer.run_indexing()
+                    # Recargar grafo persistido en la instancia cacheada
+                    graph_manager.load_from_json("data/knowledge_graph.json")
                     st.success(f"¡Indexación completada! Chunks procesados: {total}")
                     st.rerun()
                 except Exception as e:

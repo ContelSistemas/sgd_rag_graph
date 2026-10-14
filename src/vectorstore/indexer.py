@@ -12,7 +12,7 @@ class SGDIndexer:
         self.data_dir = Path(data_dir)
         self.parser = MarkdownParser()
         self.chunker = HierarchicalMarkdownChunker()
-        self.graph_manager = KnowledgeGraphManager()
+        self.graph_manager = KnowledgeGraphManager(persist_path="data/knowledge_graph.json")
         self.vector_store = VectorStoreManager(persist_directory=vector_dir)
 
     def run_indexing(self) -> int:

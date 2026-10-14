@@ -16,7 +16,7 @@ app = FastAPI(
 
 # Instancias globales o de soporte
 vector_store = VectorStoreManager(persist_directory="data/vectorstore")
-graph_manager = KnowledgeGraphManager()
+graph_manager = KnowledgeGraphManager(persist_path="data/knowledge_graph.json")
 retriever = HybridRetriever(vector_store=vector_store, graph_manager=graph_manager)
 
 class QueryRequest(BaseModel):
@@ -53,9 +53,9 @@ def trigger_indexing():
     try:
         indexer = SGDIndexer(data_dir="data", vector_dir="data/vectorstore")
         total_chunks = indexer.run_indexing()
-        # Sincronizamos graph_manager global con el indexador
+        # Recargar grafo persistido en la instancia global
         global graph_manager, retriever
-        graph_manager = indexer.graph_manager
+        graph_manager.load_from_json("data/knowledge_graph.json")
         retriever = HybridRetriever(vector_store=vector_store, graph_manager=graph_manager)
         return IndexResponse(status="success", total_chunks=total_chunks)
     except Exception as e:
