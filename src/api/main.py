@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -7,6 +8,11 @@ from src.retrieval.hybrid import HybridRetriever
 from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
 from src.generation.local_llm import LocalLLMClient
+
+# Configuración por variables de entorno (con defaults para Docker)
+DEFAULT_LLM_BACKEND = os.getenv("LLM_BACKEND", "llamacpp")
+DEFAULT_LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:8080")
+DEFAULT_LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
 
 app = FastAPI(
     title="Graph RAG para SGD - API REST",
@@ -23,9 +29,9 @@ class QueryRequest(BaseModel):
     query: str
     top_k: int = 4
     graph_radius: int = 1
-    backend: str = "llamacpp"
-    base_url: str = "http://localhost:8080"
-    timeout: int = 300
+    backend: str = DEFAULT_LLM_BACKEND
+    base_url: str = DEFAULT_LLM_BASE_URL
+    timeout: int = DEFAULT_LLM_TIMEOUT
 
 class QueryResponse(BaseModel):
     query: str

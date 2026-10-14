@@ -12,4 +12,6 @@ services:
       - ./config:/app/config
     environment:
       - PYTHONUNBUFFERED=1
+      - LLM_BASE_URL=http://172.17.0.1:8080
+      - LLM_BACKEND=llamacpp
     command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --ws none

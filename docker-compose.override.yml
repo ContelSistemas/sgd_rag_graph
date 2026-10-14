@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  grafrac-api:
+    environment:
+      - LLM_BASE_URL=http://host.docker.internal:8080
+      - LLM_BACKEND=llamacpp
+    # Para desarrollo: monta código para hot-reload
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./requirements.txt:/app/requirements.txt
+
+  # Servicio opcional: Streamlit UI
+  grafrac-ui:
+    build: .
+    container_name: grafrac-ui
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./src:/app/src
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LLM_BASE_URL=http://host.docker.internal:8080
+      - LLM_BACKEND=llamacpp
+    command: streamlit run src/ui/app.py --server.address=0.0.0.0 --server.port=8501 --server.headless=true
+    depends_on:
+      - grafrac-api
+    profiles:
+      - ui

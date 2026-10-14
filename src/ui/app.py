@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import sys
 from pathlib import Path
@@ -13,6 +14,11 @@ from src.retrieval.hybrid import HybridRetriever
 from src.generation.local_llm import LocalLLMClient
 from src.vectorstore.indexer import SGDIndexer
 from src.ui.markdown_editor import render_markdown_editor
+
+# Configuración por variables de entorno (con defaults)
+DEFAULT_LLM_BACKEND = os.getenv("LLM_BACKEND", "llamacpp")
+DEFAULT_LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:8080")
+DEFAULT_LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
 
 st.set_page_config(
     page_title="Graph RAG para SGD - Interfaz Web On-Premise",
@@ -39,9 +45,9 @@ with tab_chat:
     with st.sidebar:
         st.header("⚙️ Configuración del Sistema")
         
-        backend = st.selectbox("Backend LLM", ["llamacpp", "ollama"], index=0)
-        base_url = st.text_input("URL Base del LLM", value="http://localhost:8080")
-        timeout = st.slider("Timeout (segundos)", 30, 600, 300)
+        backend = st.selectbox("Backend LLM", ["llamacpp", "ollama"], index=0 if DEFAULT_LLM_BACKEND == "llamacpp" else 1)
+        base_url = st.text_input("URL Base del LLM", value=DEFAULT_LLM_BASE_URL)
+        timeout = st.slider("Timeout (segundos)", 30, 600, DEFAULT_LLM_TIMEOUT)
         
         st.markdown("---")
         top_k = st.slider("Fragmentos Top-K", 1, 10, 3)
