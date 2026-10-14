@@ -216,3 +216,28 @@ Esta versión inicial establece las bases conceptuales, arquitectónicas y de go
 - Desarrollo del script de ingesta en Python para lectura de archivos Markdown del SGD.
 - Extracción automatizada de metadatos YAML frontmatter y enlaces cruzados tipo wiki (`[[enlace]]`).
 - Construcción inicial del grafo de relaciones utilizando NetworkX.
+
+---
+
+## 🚀 Roadmap / Mejoras Futuras (Post v0.8.0)
+
+### Visualización Interactiva del Grafo de Conocimiento (UI)
+**Propuesta:** Añadir nueva tab "🕸️ Grafo SGD" en Streamlit para explorar nodos/edges visualmente.
+
+**Funcionalidades deseadas:**
+- **Vista grafo interactiva** (pyvis / networkx + streamlit-agraph / cytoscape.js):
+  - Nodos = documentos (tamaño por nº chunks, color por categoría)
+  - Edges = wiki links (dirigidos, etiquetados)
+  - Zoom, pan, drag, selección múltiple
+- **Filtros**: por categoría, por status, por radio de vecinos desde nodo seleccionado
+- **Detalle al click**: panel lateral con metadatos del nodo, chunks asociados, vecinos directos
+- **Acciones**: "Ver documento en Editor", "Ejecutar consulta RAG desde este nodo"
+- **Métricas**: grado de entrada/salida, centralidad, componentes conectados
+- **Export**: PNG/SVG del subgrafo visible, JSON del subgrafo para análisis offline
+
+**Dependencias candidatas:**
+- `streamlit-agraph` (wrapper de react-graph-vis)
+- `pyvis` (genera HTML interactivo, embebible via `st.components.v1.html`)
+- `networkx` + `matplotlib`/`plotly` para vistas estáticas rápidas
+
+**Valor:** Permite a gestores/documentalistas entender la topología documental, detectar docs huérfanos, clusters temáticos, y validar que los wiki links reflejan la estructura real del SGD.
