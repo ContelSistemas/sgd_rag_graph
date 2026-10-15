@@ -1,5 +1,42 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.9.0-alpha (Sprint 1: Mejoras Core - Graph Expansion, LLM Retry, Config Centralizada)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se ha completado el **Sprint 1** de mejoras core del sistema, abordando tres áreas críticas: **recuperación híbrida real** (el grafo ahora devuelve contenido real de chunks vecinos, no solo metadatos), **resiliencia del cliente LLM** (retry exponencial con backoff configurable), y **configuración centralizada** con validación via pydantic-settings.
+
+### ✨ Novedades y Componentes Implementados
+- **Recuperación Híbrida Real (`src/retrieval/hybrid.py`, `src/vectorstore/store.py`):** Nueva función `get_chunks_by_doc_title()` en VectorStoreManager. El `HybridRetriever` ahora busca chunks reales de documentos vecinos en el grafo (límite 3 por vecino) y los incluye con su contenido completo, mejorando drásticamente la calidad del contexto enviado al LLM.
+- **Cliente LLM con Retry/Backoff (`src/generation/local_llm.py`):** Implementación de reintentos exponenciales (`max_retries=3`, `base_delay=1.0s`) para errores 5xx, timeouts y errores de conexión. Parámetros configurables vía settings.
+- **Configuración Centralizada (`src/config/settings.py`):** Nuevo módulo con `pydantic-settings` que unifica todas las variables de entorno (LLM, Vector Store, Graph, API, Retrieval) con validación de tipos, rangos y enums. Elimina `os.getenv` disperso.
+- **Validación en API (`src/api/main.py`):** Pydantic `Field` con constraints: `top_k` (1-20), `graph_radius` (0-5), `timeout` (10-600s), `backend` enum (`llamacpp`|`ollama`).
+- **Actualización AGENTS.md:** Añadida tabla de variables de entorno, comando Docker con profile UI, gotchas de Docker (`host.docker.internal`, hot-reload).
+
+### 🔧 Cambios Técnicos
+- `src/vectorstore/store.py`: +`get_chunks_by_doc_title(doc_title, limit=5)`
+- `src/retrieval/hybrid.py`: Graph expansion usa chunks reales + deduplicación por `chunk_id`
+- `src/generation/local_llm.py`: `_request_with_retry()` con backoff exponencial, `max_retries`, `base_delay`
+- `src/config/settings.py`: Nuevo, `Settings` class con `SettingsConfigDict`, `@lru_cache get_settings()`
+- `src/api/main.py`, `src/ui/app.py`, `src/vectorstore/indexer.py`: Migración a `get_settings()`
+
+### 🧪 Comandos de Prueba
+```bash
+# Tests unitarios (11 passing, mocks para LLM/vector store)
+PYTHONPATH=. pytest tests/ -v
+
+# Demo E2E (requiere LLM server en puerto 8080)
+python3 run_demo.py
+
+# Chat CLI
+python3 run_chat.py llamacpp http://localhost:8080
+
+# API + UI con Docker
+docker-compose --profile ui up --build
+```
+
+---
+
 ## v0.8.0-alpha (Fase 8A: Interfaz Web Visual con Streamlit)
 **Fecha:** Octubre 2026
 

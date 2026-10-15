@@ -43,10 +43,10 @@ graph TD
 
 ```text
 grafrac/
-├── config/              # Archivos de configuración
+├── config/              # Configuración centralizada (pydantic-settings)
 ├── data/                # Documentos del SGD y persistencia local
 ├── docs/                # Documentación y esquemas (mindmap, SVG)
-├── src/                 # Código fuente (ingestion, graph, vectorstore, retrieval, generation)
+├── src/                 # Código fuente (ingestion, graph, vectorstore, retrieval, generation, api, ui, config)
 ├── tests/               # Pruebas unitarias e integración
 ├── requirements.txt     # Dependencias de Python
 ├── README.md            # Documentación principal
@@ -204,3 +204,4 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
 6. **Fase 6:** Capa de Servicio (API REST con FastAPI) y Orquestación. *(Completado)*
 7. **Fase 7:** Persistencia del Grafo, Interfaz de Chat CLI Interactiva y Contenerización Docker/Docker Compose. *(Completado)*
 8. **Fase 8A:** Interfaz Web Visual con Streamlit y Panel de Control. *(Completado)*
+9. **Sprint 1 (v0.9.0):** Mejoras Core - Graph Expansion real, LLM Retry/Backoff, Config Centralizada. *(Completado)*

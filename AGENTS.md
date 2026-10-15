@@ -88,3 +88,9 @@ data/
 - Frontmatter must be valid YAML at file start
 - Docker uses `host.docker.internal` for LLM connectivity from container
 - `docker-compose.override.yml` mounts source for hot-reload (dev only)
+
+## Sprint 1 Improvements (v0.9.0)
+- **Graph expansion** now retrieves actual chunk content from neighbors (not just metadata)
+- **LLM client** has exponential backoff retry (`max_retries=3`, `base_delay=1s`)
+- **Centralized config** in `src/config/settings.py` (pydantic-settings) with validation
+- **API validates** timeout (10-600s), top_k (1-20), graph_radius (0-5), backend enum
