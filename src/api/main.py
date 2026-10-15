@@ -1,18 +1,15 @@
-import os
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
+from src.config import get_settings
 from src.vectorstore.indexer import SGDIndexer
 from src.retrieval.hybrid import HybridRetriever
 from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
 from src.generation.local_llm import LocalLLMClient
 
-# Configuración por variables de entorno (con defaults para Docker)
-DEFAULT_LLM_BACKEND = os.getenv("LLM_BACKEND", "llamacpp")
-DEFAULT_LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:8080")
-DEFAULT_LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
+settings = get_settings()
 
 app = FastAPI(
     title="Graph RAG para SGD - API REST",
@@ -20,18 +17,18 @@ app = FastAPI(
     version="0.6.0"
 )
 
-# Instancias globales o de soporte
-vector_store = VectorStoreManager(persist_directory="data/vectorstore")
-graph_manager = KnowledgeGraphManager(persist_path="data/knowledge_graph.json")
+# Instancias globales
+vector_store = VectorStoreManager(persist_directory=settings.vector_store_dir)
+graph_manager = KnowledgeGraphManager(persist_path=settings.graph_persist_path)
 retriever = HybridRetriever(vector_store=vector_store, graph_manager=graph_manager)
 
 class QueryRequest(BaseModel):
     query: str
-    top_k: int = 4
-    graph_radius: int = 1
-    backend: str = DEFAULT_LLM_BACKEND
-    base_url: str = DEFAULT_LLM_BASE_URL
-    timeout: int = DEFAULT_LLM_TIMEOUT
+    top_k: int = Field(default=4, ge=1, le=20)
+    graph_radius: int = Field(default=1, ge=0, le=5)
+    backend: str = Field(default=settings.llm_backend, pattern="^(llamacpp|ollama)$")
+    base_url: str = Field(default=settings.llm_base_url)
+    timeout: int = Field(default=settings.llm_timeout, ge=10, le=600)
 
 class QueryResponse(BaseModel):
     query: str
@@ -57,11 +54,10 @@ def health_check():
 @app.post("/index", response_model=IndexResponse)
 def trigger_indexing():
     try:
-        indexer = SGDIndexer(data_dir="data", vector_dir="data/vectorstore")
+        indexer = SGDIndexer(data_dir=settings.data_dir, vector_dir=settings.vector_store_dir)
         total_chunks = indexer.run_indexing()
-        # Recargar grafo persistido en la instancia global
         global graph_manager, retriever
-        graph_manager.load_from_json("data/knowledge_graph.json")
+        graph_manager.load_from_json(settings.graph_persist_path)
         retriever = HybridRetriever(vector_store=vector_store, graph_manager=graph_manager)
         return IndexResponse(status="success", total_chunks=total_chunks)
     except Exception as e:
@@ -71,7 +67,14 @@ def trigger_indexing():
 def query_rag(req: QueryRequest):
     try:
         contexts = retriever.retrieve(req.query, top_k=req.top_k, graph_radius=req.graph_radius)
-        llm = LocalLLMClient(backend=req.backend, base_url=req.base_url, timeout=req.timeout)
+        llm = LocalLLMClient(
+            backend=req.backend,
+            base_url=req.base_url,
+            model_name=settings.llm_model_name,
+            timeout=req.timeout,
+            max_retries=settings.llm_max_retries,
+            base_delay=settings.llm_base_delay,
+        )
         answer = llm.generate_response(req.query, contexts)
         return QueryResponse(query=req.query, response=answer, contexts=contexts)
     except Exception as e:

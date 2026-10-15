@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional
+from src.config import get_settings
 from src.ingestion.parser import MarkdownParser
 from src.ingestion.chunker import HierarchicalMarkdownChunker
 from src.graph.manager import KnowledgeGraphManager
@@ -8,12 +9,13 @@ from src.vectorstore.store import VectorStoreManager
 class SGDIndexer:
     """Pipeline completo de indexación para el SGD (Parser + Chunker + Graph + VectorStore)."""
 
-    def __init__(self, data_dir: str = "data", vector_dir: str = "data/vectorstore"):
-        self.data_dir = Path(data_dir)
+    def __init__(self, data_dir: Optional[str] = None, vector_dir: Optional[str] = None):
+        settings = get_settings()
+        self.data_dir = Path(data_dir or settings.data_dir)
         self.parser = MarkdownParser()
         self.chunker = HierarchicalMarkdownChunker()
-        self.graph_manager = KnowledgeGraphManager(persist_path="data/knowledge_graph.json")
-        self.vector_store = VectorStoreManager(persist_directory=vector_dir)
+        self.graph_manager = KnowledgeGraphManager(persist_path=settings.graph_persist_path)
+        self.vector_store = VectorStoreManager(persist_directory=vector_dir or settings.vector_store_dir)
 
     def run_indexing(self) -> int:
         if not self.data_dir.exists():

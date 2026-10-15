@@ -38,14 +38,30 @@ class HybridRetriever:
                 neighbors = self.graph_manager.get_neighbors(doc_id, radius=graph_radius)
                 for neighbor in neighbors:
                     neighbor_data = self.graph_manager.graph.nodes.get(neighbor, {})
-                    neighbor_path = neighbor_data.get("source_path", "")
-                    if neighbor_path and neighbor_path != source_path:
-                        retrieved_contexts.append({
-                            "type": "graph_expansion",
-                            "chunk_id": f"graph-neighbor-{neighbor}",
-                            "content": f"[Documento Relacionado en Grafo: {neighbor}]",
-                            "metadata": neighbor_data,
-                            "distance": 0.0
-                        })
+                    neighbor_title = neighbor_data.get("title", neighbor)
+                    
+                    try:
+                        neighbor_chunks = self.vector_store.get_chunks_by_doc_title(neighbor_title, limit=3)
+                        for nc in neighbor_chunks:
+                            n_chunk_id = nc["chunk_id"]
+                            if n_chunk_id not in seen_chunks:
+                                seen_chunks.add(n_chunk_id)
+                                retrieved_contexts.append({
+                                    "type": "graph_expansion",
+                                    "chunk_id": n_chunk_id,
+                                    "content": nc["content"],
+                                    "metadata": nc["metadata"],
+                                    "distance": 0.0
+                                })
+                    except Exception:
+                        neighbor_path = neighbor_data.get("source_path", "")
+                        if neighbor_path and neighbor_path != source_path:
+                            retrieved_contexts.append({
+                                "type": "graph_expansion",
+                                "chunk_id": f"graph-neighbor-{neighbor}",
+                                "content": f"[Documento Relacionado en Grafo: {neighbor_title}]",
+                                "metadata": neighbor_data,
+                                "distance": 0.0
+                            })
 
         return retrieved_contexts

@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 import sys
 from pathlib import Path
@@ -8,6 +7,7 @@ root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from src.config import get_settings
 from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
 from src.retrieval.hybrid import HybridRetriever
@@ -15,10 +15,7 @@ from src.generation.local_llm import LocalLLMClient
 from src.vectorstore.indexer import SGDIndexer
 from src.ui.markdown_editor import render_markdown_editor
 
-# Configuración por variables de entorno (con defaults)
-DEFAULT_LLM_BACKEND = os.getenv("LLM_BACKEND", "llamacpp")
-DEFAULT_LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:8080")
-DEFAULT_LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "300"))
+settings = get_settings()
 
 st.set_page_config(
     page_title="Graph RAG para SGD - Interfaz Web On-Premise",
@@ -28,8 +25,8 @@ st.set_page_config(
 
 @st.cache_resource
 def init_rag_components():
-    vector_store = VectorStoreManager(persist_directory="data/vectorstore")
-    graph_manager = KnowledgeGraphManager(persist_path="data/knowledge_graph.json")
+    vector_store = VectorStoreManager(persist_directory=settings.vector_store_dir)
+    graph_manager = KnowledgeGraphManager(persist_path=settings.graph_persist_path)
     retriever = HybridRetriever(vector_store=vector_store, graph_manager=graph_manager)
     return vector_store, graph_manager, retriever
 
@@ -45,23 +42,23 @@ with tab_chat:
     with st.sidebar:
         st.header("⚙️ Configuración del Sistema")
         
-        backend = st.selectbox("Backend LLM", ["llamacpp", "ollama"], index=0 if DEFAULT_LLM_BACKEND == "llamacpp" else 1)
-        base_url = st.text_input("URL Base del LLM", value=DEFAULT_LLM_BASE_URL)
-        timeout = st.slider("Timeout (segundos)", 30, 600, DEFAULT_LLM_TIMEOUT)
+        backend = st.selectbox("Backend LLM", ["llamacpp", "ollama"], index=0 if settings.llm_backend == "llamacpp" else 1)
+        base_url = st.text_input("URL Base del LLM", value=settings.llm_base_url)
+        timeout = st.slider("Timeout (segundos)", 30, settings.api_max_timeout, settings.llm_timeout)
         
         st.markdown("---")
-        top_k = st.slider("Fragmentos Top-K", 1, 10, 3)
-        graph_radius = st.slider("Radio del Grafo", 0, 3, 1)
+        top_k = st.slider("Fragmentos Top-K", 1, 20, settings.default_top_k)
+        graph_radius = st.slider("Radio del Grafo", 0, 5, settings.default_graph_radius)
         
         st.markdown("---")
         st.subheader("🔄 Ingesta / Indexación")
         if st.button("Ejecutar Indexación SGD", type="primary"):
             with st.spinner("Indexando documentos Markdown y actualizando grafo..."):
                 try:
-                    indexer = SGDIndexer(data_dir="data", vector_dir="data/vectorstore")
+                    indexer = SGDIndexer(data_dir=settings.data_dir, vector_dir=settings.vector_store_dir)
                     total = indexer.run_indexing()
                     # Recargar grafo persistido en la instancia cacheada
-                    graph_manager.load_from_json("data/knowledge_graph.json")
+                    graph_manager.load_from_json(settings.graph_persist_path)
                     st.success(f"¡Indexación completada! Chunks procesados: {total}")
                     st.rerun()
                 except Exception as e:
@@ -94,7 +91,14 @@ with tab_chat:
             with st.spinner("Buscando en vector store y grafo de conocimiento y generando respuesta..."):
                 try:
                     contexts = retriever.retrieve(prompt, top_k=top_k, graph_radius=graph_radius)
-                    llm = LocalLLMClient(backend=backend, base_url=base_url, timeout=timeout)
+                    llm = LocalLLMClient(
+                        backend=backend,
+                        base_url=base_url,
+                        model_name=settings.llm_model_name,
+                        timeout=timeout,
+                        max_retries=settings.llm_max_retries,
+                        base_delay=settings.llm_base_delay,
+                    )
                     answer = llm.generate_response(prompt, contexts)
                     
                     st.markdown(answer)

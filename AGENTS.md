@@ -30,9 +30,14 @@ streamlit run src/ui/app.py
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --ws none
 ```
 
-**Docker**:
+**Docker** (API only):
 ```bash
 docker-compose up --build
+```
+
+**Docker with UI** (dev profile):
+```bash
+docker-compose --profile ui up --build
 ```
 
 ## Architecture & Entry Points
@@ -57,6 +62,13 @@ data/
 └── knowledge_graph.json    # NetworkX graph export
 ```
 
+## Environment Variables (API)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_BACKEND` | `llamacpp` | `ollama` or `llamacpp` |
+| `LLM_BASE_URL` | `http://localhost:8080` | LLM server URL |
+| `LLM_TIMEOUT` | `300` | Request timeout in seconds |
+
 ## LLM Backends
 - **llama.cpp**: `llama-server -hf ggml-org/gemma-3-1b-it-GGUF -c 2048 --port 8080` (lightweight)
 - **Ollama**: `ollama serve && ollama pull llama3`
@@ -64,7 +76,7 @@ data/
 
 ## Development Notes
 - Python 3.10+, dependencies in `requirements.txt`
-- Tests use mocks for LLM/vector store - no external services needed for unit tests
+- Tests use mocks for LLM/vector store - **no external services needed** for unit tests
 - `PYTHONPATH=.` required for imports (no package install)
 - Graph persists automatically on index; reloads on startup
 - Production: fix `data/` permissions (`chown -R $USER:$USER data/`)
@@ -74,3 +86,5 @@ data/
 - ChromaDB requires write access to `data/vectorstore/`
 - Wiki links use `[[target]]` or `[[target|alias]]` syntax
 - Frontmatter must be valid YAML at file start
+- Docker uses `host.docker.internal` for LLM connectivity from container
+- `docker-compose.override.yml` mounts source for hot-reload (dev only)

@@ -83,3 +83,24 @@ class VectorStoreManager:
                 })
 
         return formatted_results
+
+    def get_chunks_by_doc_title(self, doc_title: str, limit: int = 5) -> List[Dict[str, Any]]:
+        if not self.collection:
+            raise RuntimeError("ChromaDB no está disponible.")
+        
+        results = self.collection.get(
+            where={"title": doc_title},
+            limit=limit
+        )
+
+        formatted_results = []
+        if results and results["ids"]:
+            for chunk_id, doc, meta in zip(results["ids"], results["documents"], results["metadatas"]):
+                formatted_results.append({
+                    "chunk_id": chunk_id,
+                    "content": doc,
+                    "metadata": meta,
+                    "distance": 0.0
+                })
+
+        return formatted_results
