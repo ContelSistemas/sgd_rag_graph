@@ -2,16 +2,19 @@ import requests
 import time
 from typing import List, Dict, Any, Optional
 
+from src.config import get_settings
+
 class LocalLLMClient:
     """Cliente para conexión con LLMs locales (Ollama / Llama.cpp server) para síntesis RAG on-premise."""
 
-    def __init__(self, backend: str = "ollama", base_url: str = "http://localhost:11434", model_name: str = "llama3", timeout: int = 300, max_retries: int = 3, base_delay: float = 1.0):
-        self.backend = backend.lower()
-        self.base_url = base_url.rstrip("/")
-        self.model_name = model_name
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.base_delay = base_delay
+    def __init__(self, backend: Optional[str] = None, base_url: Optional[str] = None, model_name: Optional[str] = None, timeout: Optional[int] = None, max_retries: Optional[int] = None, base_delay: Optional[float] = None):
+        settings = get_settings()
+        self.backend = (backend or settings.llm_backend).lower()
+        self.base_url = (base_url or settings.llm_base_url).rstrip("/")
+        self.model_name = model_name or settings.llm_model_name
+        self.timeout = timeout if timeout is not None else settings.llm_timeout
+        self.max_retries = max_retries if max_retries is not None else settings.llm_max_retries
+        self.base_delay = base_delay if base_delay is not None else settings.llm_base_delay
 
     def _build_prompt(self, query: str, context_chunks: List[Dict[str, Any]]) -> str:
         context_text = "\n\n".join([

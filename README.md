@@ -81,7 +81,29 @@ Para configurar y probar el proyecto en un entorno local de desarrollo:
    PYTHONPATH=. pytest tests/ -v
    ```
 
-### 6. Ejecución del Chat CLI Interactivo (Fase 7)
+### 5.5. Configuración por Variables de Entorno (`.env`)
+
+El sistema lee su configuración desde un archivo `.env` en la raíz del proyecto (ignorado en git vía `.gitignore`). Copia `.env.example` a `.env` y ajusta los valores según tu entorno:
+
+```bash
+cp .env.example .env
+# Edita .env con tu editor preferido
+PYTHONPATH=. pytest tests/ -v
+```
+
+Todas las variables están centralizadas en `src/config/settings.py` (pydantic-settings) y se cargan automáticamente al iniciar cualquier componente (`LocalLLMClient`, `VectorStoreManager`, `KnowledgeGraphManager`, `SGDIndexer`, etc.).
+
+### 6. Ejecución de la TUI Textual (Interfaz de Terminal)
+
+Como alternativa a la interfaz web Streamlit, el proyecto incluye una TUI basada en [Textual](https://textual.textualize.io/) que reusa los mismos componentes de negocio (grafo, vector store, retriever, LLM):
+
+```bash
+python3 src/ui/tui.py
+```
+
+La TUI incluye chat interactivo, barra lateral de configuración (backend, URL, timeout, top-k, radio de grafo), botón de indexación SGD y estadísticas del grafo. No requiere servidor web y se ejecuta directamente en la terminal.
+
+### 7. Ejecución del Chat CLI Interactivo (Fase 7)
 
 Para realizar consultas conversacionales interactivas directamente desde la terminal utilizando el motor de recuperación híbrida y el LLM local:
 

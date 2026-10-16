@@ -1,5 +1,42 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.9.1-alpha (Sprint 1.1: TUI Textual, Configuración .env y Soporte Multi-Interfaz)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se completa el Sprint 1.1 con tres mejoras de operatividad y experiencia de desarrollador: **archivo `.env` para configuración por variables de entorno**, **nueva TUI basada en Textual** como alternativa ligera a Streamlit, y documentación consolidada de todas las mejoras del Sprint 1. El sistema mantiene su arquitectura desacoplada: la lógica de negocio (`src/`) es compartida por API, Streamlit y TUI sin duplicación.
+
+### ✨ Novedades y Componentes Implementados
+- **Archivo `.env` y `.env.example`:** Variables de entorno por defecto para LLM, Vector Store, Grafo, API y Retrieval. Ignorado en git (`.gitignore` ya incluía `.env`). Carga automática vía `src/config/settings.py` (pydantic-settings).
+- **TUI Textual (`src/ui/tui.py`):** Nueva interfaz de terminal independiente que reusa `LocalLLMClient`, `HybridRetriever`, `KnowledgeGraphManager`, `VectorStoreManager` y `SGDIndexer`. Incluye chat interactivo, configuración de backend/URL/timeout/top-k/radio de grafo, indexación SGD y estadísticas del grafo. No requiere servidor web ni navegador.
+- **Cliente LLM lee `.env` por defecto (`src/generation/local_llm.py`):** El constructor de `LocalLLMClient` ahora usa `get_settings()` como valores por defecto (`backend`, `base_url`, `model_name`, `timeout`, `max_retries`, `base_delay`), permitiendo instanciarlo sin argumentos y tomar la configuración del entorno.
+- **Dependencia añadida:** `textual>=0.86.0` en `requirements.txt`.
+
+### 🖥️ Interfaz Disponibles (todas comparten la misma lógica `src/`)
+| Interfaz | Comando | Descripción |
+|----------|---------|-------------|
+| API REST | `uvicorn src.api.main:app --reload` | Endpoints `/health`, `/index`, `/query` |
+| Web (Streamlit) | `streamlit run src/ui/app.py` | Panel visual con chat, editor y configuración |
+| TUI (Textual) | `python3 src/ui/tui.py` | Interfaz de terminal ligera, sin servidor web |
+| CLI Chat | `python3 run_chat.py llamacpp http://localhost:8080` | Chat conversacional por terminal |
+
+### 🧪 Comandos de Prueba
+```bash
+# Tests unitarios (11 passing, mocks para LLM/vector store)
+PYTHONPATH=. pytest tests/ -v
+
+# TUI (requiere LLM server en puerto 8080)
+python3 src/ui/tui.py
+
+# Demo E2E
+python3 run_demo.py
+
+# Cargar .env
+cp .env.example .env && export $(cat .env | xargs)
+```
+
+---
+
 ## v0.9.0-alpha (Sprint 1: Mejoras Core - Graph Expansion, LLM Retry, Config Centralizada)
 **Fecha:** Octubre 2026
 
