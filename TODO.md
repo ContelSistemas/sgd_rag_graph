@@ -1,16 +1,39 @@
 # TODO.md
 
 ## Objetivo actual
-Sistema Graph RAG para SGD (v0.9.1) estable tras Sprint 1 y Sprint 1.1: expansión de grafo con contenido real de chunks, cliente LLM con reintentos exponenciales, configuración centralizada en `src/config/settings.py`, validación de parámetros en la API, archivo `.env` para configuración por entorno, y nueva TUI Textual como alternativa a Streamlit.
+Sistema Graph RAG para SGD (v0.9.2) estable tras Sprint 1, Sprint 1.1 y Sprint 1.2: expansión de grafo con contenido real de chunks, cliente LLM con reintentos exponenciales, configuración centralizada en `src/config/settings.py`, archivo `.env` para configuración por entorno, TUI Textual como alternativa a Streamlit, modelo LLM ligero 1B (gemma-3-1b-it), deduplicación de contextos por hash de contenido, y limpieza de duplicados al re-indexar.
+
+## Tareas pendientes (backlog - nuevas fuentes de documento)
+- Crear herramienta de ingesta de documentos Word (.docx) y PDF para alimentar el grafo de conocimiento.
+  - Usar librerías Python: `python-docx` para .docx, `pypdf`/`PyPDF2`/`pdfplumber` para PDF.
+  - Para PDF escaneados o sin capa de texto: integrar OCR con `pytesseract` (requiere Tesseract instalado) o `easyocr`.
+  - Adaptar el pipeline actual (Parser → Chunker → Grafo → VectorStore) para aceptar texto extraído de Word/PDF y generar chunks con frontmatter sintético (título, fuente, fecha de ingestión).
+  - Añadir endpoint o comando CLI para indexar archivos .docx/.pdf desde `data/` o ruta configurada.
 
 ## Tareas pendientes
-- Reindexar documentos: colocar nuevos `.md` en `data/` y ejecutar `POST /index` o `python3 run_demo.py`.
+- Reindexar documentos: colocar nuevos `.md` en `data/` y ejecutar `POST /index` o `python3 run_demo.py` (el indexer ahora limpia chunks previos antes de insertar).
 - Validar persistencia del grafo en `data/knowledge_graph.json` tras reindexación.
 - Comprobar acceso de escritura a `data/vectorstore/` para ChromaDB.
 - Documentar en `docs/` el uso de `PLAN.md`/`TODO.md` para seguimiento de sprints.
-- Probar LLM más ligero: Qwen2.5-3B-Instruct Q4_K_M (Qwen2.5-7B va muy lento en dev). Alternativa recordatorio: Llama3.2-3B-Instruct.
+- Probar LLM más ligero: Qwen2.5-3B-Instruct Q4_K_M (Qwen2.5-7B va muy lento en dev). Alternativa: Llama3.2-3B-Instruct.
+- Considerar visualización interactiva del grafo en Streamlit (pyvis / streamlit-agraph) — ver roadmap en `release.md`.
 
-## Tareas completadas (esta sesión)
+## Tareas completadas (esta sesión - Sprint 1.2 v0.9.2)
+- Modelo LLM ligero por defecto: `llm_model_name` = `gemma-3-1b-it` en `src/config/settings.py`
+- Parámetros de generación reducidos: `llm_n_predict=256`, `llm_temperature=0.3`, `llm_ctx_size=2048`
+- `default_top_k` bajó de 4 a 3; `MAX_CONTEXTS = 6` en `HybridRetriever`
+- Dedup robusto en `similarity_search` (`src/vectorstore/store.py`): descarta chunks con hash de contenido duplicado
+- Nuevo `delete_chunks_by_source(source_path)` en `src/vectorstore/store.py`
+- `HybridRetriever` dedup por `chunk_id` y hash de contenido entre vector + grafo (`src/retrieval/hybrid.py`)
+- Indexer llama a `delete_chunks_by_source` antes de `add_chunks` (`src/vectorstore/indexer.py`)
+- Prompt optimizado para modelo 1B: contexto truncado, instrucciones anti-copia (`src/generation/local_llm.py`)
+- `LocalLLMClient` acepta `n_predict` y `temperature`; API y Streamlit los pasan
+- `src/ui/tui.py` usa `settings.default_top_k` por defecto
+- Documento de ejemplo `data/documento_ejemplo.md` para pruebas (frontmatter, enlaces wiki, texto)
+- Pruebas unitarias: `11 passed` (`PYTHONPATH=. pytest tests/ -q`)
+- Documentación: `release.md` (v0.9.2), `README.md` (sprint 1.1/1.2 + sección hardware limitado), `TODO.md` (este archivo)
+
+## Tareas completadas (Sprint 1.1 v0.9.1)
 - Crear `.env` con valores por defecto (basado en `src/config/settings.py`)
 - Crear `.env.example` como plantilla de variables de entorno
 - `.env` ya estaba en `.gitignore` (línea 6)
@@ -24,28 +47,39 @@ Sistema Graph RAG para SGD (v0.9.1) estable tras Sprint 1 y Sprint 1.1: expansi�
 - Arreglar error TUI `AttributeError: 'GraphRAGTUI' object has no attribute 'chat_input'` (uso de `query_one` en lugar de acceso directo)
 - Arreglar error TUI `TypeError: _query_worker() missing 1 required positional argument` (uso de `functools.partial`)
 
-## Archivos modificados (esta sesión)
-- `.env` — variables de entorno por defecto (valores de `src/config/settings.py`)
-- `.env.example` — plantilla de variables de entorno
-- `src/generation/local_llm.py` — constructor lee valores por defecto de `.env` vía `get_settings()`
-- `src/ui/tui.py` — nueva TUI con Textual
-- `requirements.txt` — agregada dependencia `textual>=0.86.0`
-- `README.md` — secciones de `.env` y TUI Textual
-- `release.md` — nueva versión v0.9.1-alpha
-- `data/knowledge_graph.json` — vaciado (formato correcto con `"edges"`)
-- `data/` — eliminados `.md` y `data/vectorstore/` para reindexación limpia
-
-## Archivos modificados (Sprint 1, v0.9.0)
+## Tareas completadas (Sprint 1 v0.9.0)
 - `src/config/settings.py` — configuración centralizada con pydantic-settings (lee `.env` automáticamente)
 - `src/generation/local_llm.py` — reintentos exponenciales (`max_retries=3`, `base_delay=1s`)
 - `src/retrieval/hybrid.py` — expansión de grafo con contenido real de chunks
 - `src/api/main.py` — validación de timeout (10-600s), top_k (1-20), graph_radius (0-5), backend enum
 - `AGENTS.md`, `README.md`, `release.md` — documentación actualizada
 
+## Archivos modificados (Sprint 1.2 v0.9.2)
+- `src/config/settings.py` — modelo 1B, n_predict, temperature, ctx_size, top_k=3
+- `src/generation/local_llm.py` — prompt anti-copia, n_predict/temperature, truncado contexto
+- `src/vectorstore/store.py` — dedup por hash, delete_chunks_by_source
+- `src/vectorstore/indexer.py` — limpia chunks previos antes de add_chunks
+- `src/retrieval/hybrid.py` — dedup cruzado vector+grafo, MAX_CONTEXTS=6
+- `src/api/main.py` — pasa n_predict y temperature al LLM
+- `src/ui/app.py` — pasa n_predict y temperature al LLM
+- `src/ui/tui.py` — top_k por defecto desde settings
+- `data/documento_ejemplo.md` — nuevo documento tipo para pruebas
+- `release.md`, `README.md`, `TODO.md` — documentación
+
 ## Errores detectados
 - Ninguno reportado actualmente. Los tests requieren `PYTHONPATH=.` y no necesitan servicios externos (mocks para LLM/vector store).
 
 ## Siguiente paso que debe ejecutar
 ```bash
+# 1. Lanzar servidor LLM ligero (1B, CPU)
+llama-server -hf ggml-org/gemma-3-1b-it-Q4_K_M-GGUF -c 2048 --port 8080
+
+# 2. Reindexar documentos (limpia duplicados previos)
+POST /index   # vía API, Streamlit o python3 run_demo.py
+
+# 3. Ejecutar pruebas
 PYTHONPATH=. pytest tests/ -v
+
+# 4. Chat CLI
+python3 run_chat.py llamacpp http://localhost:8080
 ```

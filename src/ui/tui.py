@@ -45,7 +45,7 @@ class GraphRAGTUI(App):
                 )
                 yield Input(placeholder="http://localhost:8080", id="base_url_input", value="http://localhost:8080")
                 yield Input(placeholder="300", id="timeout_input", value="300")
-                yield Input(placeholder="4", id="top_k_input", value="4")
+                yield Input(placeholder=str(settings.default_top_k), id="top_k_input", value=str(settings.default_top_k))
                 yield Input(placeholder="1", id="graph_radius_input", value="1")
                 yield Static()
                 yield Button("Indexar SGD", id="btn_index", variant="primary")

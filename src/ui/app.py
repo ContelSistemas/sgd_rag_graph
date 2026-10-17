@@ -78,9 +78,16 @@ with tab_chat:
             st.markdown(message["content"])
             if "sources" in message and message["sources"]:
                 with st.expander("🔍 Fuentes y Referencias del SGD"):
+                    seen_sources = set()
                     for src in message["sources"]:
                         meta = src.get("metadata", {})
-                        st.write(f"- **{meta.get('title', 'N/A')}** (`{meta.get('source_path', 'N/A')}`)")
+                        title = meta.get('title', 'N/A')
+                        source_path = meta.get('source_path', 'N/A')
+                        source_key = (title, source_path)
+                        if source_key in seen_sources:
+                            continue
+                        seen_sources.add(source_key)
+                        st.write(f"- **{title}** (`{source_path}`)")
 
     if prompt := st.chat_input("Escribe tu pregunta sobre la documentación del SGD..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -98,15 +105,25 @@ with tab_chat:
                         timeout=timeout,
                         max_retries=settings.llm_max_retries,
                         base_delay=settings.llm_base_delay,
+                        n_predict=settings.llm_n_predict,
+                        temperature=settings.llm_temperature,
+                        repeat_penalty=settings.llm_repeat_penalty,
                     )
                     answer = llm.generate_response(prompt, contexts)
                     
                     st.markdown(answer)
                     if contexts:
                         with st.expander("🔍 Fuentes y Referencias del SGD"):
+                            seen_sources = set()
                             for src in contexts:
                                 meta = src.get("metadata", {})
-                                st.write(f"- **{meta.get('title', 'N/A')}** (`{meta.get('source_path', 'N/A')}`)")
+                                title = meta.get('title', 'N/A')
+                                source_path = meta.get('source_path', 'N/A')
+                                source_key = (title, source_path)
+                                if source_key in seen_sources:
+                                    continue
+                                seen_sources.add(source_key)
+                                st.write(f"- **{title}** (`{source_path}`)")
                                 
                     st.session_state.messages.append({
                         "role": "assistant",

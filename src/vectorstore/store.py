@@ -1,4 +1,5 @@
 import os
+import hashlib
 from typing import List, Dict, Any, Optional
 
 try:
@@ -56,6 +57,18 @@ class VectorStoreManager:
             metadatas=metadatas
         )
 
+    def delete_chunks_by_source(self, source_path: str) -> None:
+        """Elimina todos los chunks de una ruta fuente para evitar duplicados al re-indexar."""
+        if not self.collection:
+            return
+        try:
+            self.collection.delete(where={"source_path": str(source_path)})
+        except Exception:
+            pass
+
+    def _content_hash(self, text: str) -> str:
+        return hashlib.md5(text.encode("utf-8")).hexdigest()
+
     def similarity_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         if not self.collection or not self.encoder:
             raise RuntimeError("ChromaDB y/o SentenceTransformers no están instalados en este entorno.")
@@ -68,6 +81,7 @@ class VectorStoreManager:
         )
 
         formatted_results = []
+        seen_hashes = set()
         if results and results["ids"] and len(results["ids"]) > 0:
             ids = results["ids"][0]
             docs = results["documents"][0]
@@ -75,6 +89,10 @@ class VectorStoreManager:
             distances = results["distances"][0] if "distances" in results and results["distances"] else [0.0] * len(ids)
 
             for chunk_id, doc, meta, dist in zip(ids, docs, metas, distances):
+                content_hash = self._content_hash(doc)
+                if content_hash in seen_hashes:
+                    continue
+                seen_hashes.add(content_hash)
                 formatted_results.append({
                     "chunk_id": chunk_id,
                     "content": doc,

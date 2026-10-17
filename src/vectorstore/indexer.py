@@ -42,6 +42,7 @@ class SGDIndexer:
 
                 chunks = self.chunker.chunk_document(parsed)
                 if chunks:
+                    self.vector_store.delete_chunks_by_source(str(file_path))
                     self.vector_store.add_chunks(chunks)
                     total_chunks += len(chunks)
 

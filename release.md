@@ -1,5 +1,50 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.9.2-alpha (Sprint 1.2: Modelo Ligero 1B, Deduplicación de Contextos y Optimización para Hardware Limitado)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se completa el **Sprint 1.2** con mejoras orientadas a entornos de hardware limitado (solo CPU, RAM reducida): **modelo LLM ligero (gemma-3-1b-it 1B)**, **parámetros de generación reducidos** (`n_predict=256`, `temperature=0.3`), **top_k por defecto 3**, **truncado de contexto en prompt**, **deduplicación de chunks por contenido** (no solo por `chunk_id`) y **limpieza de chunks previos al re-indexar**. Se eliminan respuestas repetidas y fuentes duplicadas en cada consulta.
+
+### ✨ Novedades y Componentes Implementados
+- **Modelo LLM ligero por defecto (`src/config/settings.py`):** `llm_model_name` pasa de `llama3` a `gemma-3-1b-it` (1B, cuantificado), ideal para CPU sin GPU.
+- **Parámetros de generación reducidos:** `llm_n_predict=256`, `llm_temperature=0.3`, `llm_ctx_size=2048`. Menos tokens de salida y menor consumo de CPU/RAM por inferencia.
+- **Retrieval más ligero:** `default_top_k` baja de 4 a 3; `MAX_CONTEXTS = 6` en `HybridRetriever` limita el total de contextos enviados al LLM.
+- **Deduplicación robusta (`src/vectorstore/store.py`, `src/retrieval/hybrid.py`):**
+  - `similarity_search` descarta chunks con hash de contenido duplicado (MD5).
+  - `HybridRetriever` dedup por `chunk_id` **y** por hash de contenido entre resultados vectoriales y expansión de grafo.
+  - `MAX_CONTEXTS` evita saturar el modelo con contexto repetido o excesivo.
+- **Indexación sin duplicados acumulados (`src/vectorstore/indexer.py`, `src/vectorstore/store.py`):**
+  - Nuevo `delete_chunks_by_source(source_path)` para limpiar chunks previos de una fuente antes de `add_chunks`.
+  - El indexer llama a `delete_chunks_by_source` por documento antes de re-indexar, evitando chunks repetidos en ChromaDB.
+- **Prompt optimizado para modelo 1B (`src/generation/local_llm.py`):** Prompt más corto, contexto truncado a 500 chars por chunk y 2000 totales, instrucciones de síntesis (prohíbe copia textual).
+- **Coherencia entre interfaces:** `src/api/main.py` y `src/ui/app.py` pasan `n_predict` y `temperature` al `LocalLLMClient`; `src/ui/tui.py` usa `settings.default_top_k` por defecto.
+
+### 🖥️ Interfaz Disponibles (todas comparten la misma lógica `src/`)
+| Interfaz | Comando | Descripción |
+|----------|---------|-------------|
+| API REST | `uvicorn src.api.main:app --reload` | Endpoints `/health`, `/index`, `/query` |
+| Web (Streamlit) | `streamlit run src/ui/app.py` | Panel visual con chat, editor y configuración |
+| TUI (Textual) | `python3 src/ui/tui.py` | Interfaz de terminal ligera, sin servidor web |
+| CLI Chat | `python3 run_chat.py llamacpp http://localhost:8080` | Chat conversacional por terminal |
+
+### 🧪 Comandos de Prueba
+```bash
+# Tests unitarios (11 passing, mocks para LLM/vector store)
+PYTHONPATH=. pytest tests/ -v
+
+# Lanza servidor LLM ligero (1B, CPU)
+llama-server -hf ggml-org/gemma-3-1b-it-Q4_K_M-GGUF -c 2048 --port 8080
+
+# Chat CLI
+python3 run_chat.py llamacpp http://localhost:8080
+
+# Reindexar documentos (limpia duplicados previos)
+POST /index   # o ejecutar python3 run_demo.py
+```
+
+---
+
 ## v0.9.1-alpha (Sprint 1.1: TUI Textual, Configuración .env y Soporte Multi-Interfaz)
 **Fecha:** Octubre 2026
 

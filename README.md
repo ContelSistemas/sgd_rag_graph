@@ -216,6 +216,38 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
 
 ---
 
+## 🖥️ Optimización para Hardware Limitado (CPU solo, sin GPU)
+
+El sistema está preparado para ejecutarse exclusivamente en CPU con modelos ultraligeros. Para entornos con recursos limitados:
+
+### Modelo LLM recomendado (1B)
+Lanza `llama-server` con Gemma 3 1B cuantificado:
+
+```bash
+# Modelo ligero, ideal para CPU sin GPU
+llama-server -hf ggml-org/gemma-3-1b-it-Q4_K_M-GGUF -c 2048 --port 8080
+```
+
+Luego consulta:
+```bash
+python3 run_chat.py llamacpp http://localhost:8080
+```
+
+### Parámetros por defecto optimizados (`src/config/settings.py`)
+| Parámetro | Valor | Efecto |
+|-----------|-------|--------|
+| `llm_model_name` | `gemma-3-1b-it` | Modelo 1B, bajo consumo de RAM/CPU |
+| `llm_n_predict` | 256 | Máximo de tokens generados por respuesta |
+| `llm_temperature` | 0.3 | Menor variación, respuestas más deterministas |
+| `llm_ctx_size` | 2048 | Ventana de contexto reducida |
+| `default_top_k` | 3 | Menos fragmentos recuperados por consulta |
+| `MAX_CONTEXTS` (retriever) | 6 | Tope de contextos enviados al LLM |
+
+### Deduplicación de contextos
+Cada consulta elimina automáticamente fragmentos repetidos (por `chunk_id` y por hash de contenido) tanto de la búsqueda vectorial como de la expansión de grafo, evitando respuestas "corta-pega" y fuentes duplicadas.
+
+---
+
 ## 🚀 Hoja de Ruta
 
 1. **Fase 1:** Diseño arquitectónico, directrices y estructuración documental. *(Completado)*
@@ -227,3 +259,5 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
 7. **Fase 7:** Persistencia del Grafo, Interfaz de Chat CLI Interactiva y Contenerización Docker/Docker Compose. *(Completado)*
 8. **Fase 8A:** Interfaz Web Visual con Streamlit y Panel de Control. *(Completado)*
 9. **Sprint 1 (v0.9.0):** Mejoras Core - Graph Expansion real, LLM Retry/Backoff, Config Centralizada. *(Completado)*
+10. **Sprint 1.1 (v0.9.1):** TUI Textual, Configuración `.env` y Soporte Multi-Interfaz. *(Completado)*
+11. **Sprint 1.2 (v0.9.2):** Modelo Ligero 1B, Deduplicación de Contextos y Optimización para Hardware Limitado. *(Completado)*

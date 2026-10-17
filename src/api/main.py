@@ -74,6 +74,9 @@ def query_rag(req: QueryRequest):
             timeout=req.timeout,
             max_retries=settings.llm_max_retries,
             base_delay=settings.llm_base_delay,
+            n_predict=settings.llm_n_predict,
+            temperature=settings.llm_temperature,
+            repeat_penalty=settings.llm_repeat_penalty,
         )
         answer = llm.generate_response(req.query, contexts)
         return QueryResponse(query=req.query, response=answer, contexts=contexts)

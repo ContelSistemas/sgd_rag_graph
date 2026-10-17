@@ -41,9 +41,16 @@ def main():
             print(f"\n--- Respuesta ---\n{response}\n-----------------\n")
             
             print("Fuentes y referencias:")
+            seen_sources = set()
             for i, r in enumerate(results, 1):
                 meta = r.get("metadata", {})
-                print(f"  [{i}] {meta.get('title', 'N/A')} ({meta.get('source_path', 'N/A')})")
+                title = meta.get('title', 'N/A')
+                source_path = meta.get('source_path', 'N/A')
+                source_key = (title, source_path)
+                if source_key in seen_sources:
+                    continue
+                seen_sources.add(source_key)
+                print(f"  [{i}] {title} ({source_path})")
             print()
             
         except KeyboardInterrupt:
