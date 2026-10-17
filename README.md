@@ -248,6 +248,36 @@ Cada consulta elimina automáticamente fragmentos repetidos (por `chunk_id` y po
 
 ---
 
+## 📄 Ingesta de Documentos Word y PDF
+
+El sistema puede alimentar el grafo de conocimiento y la base vectorial a partir de documentos Word (.docx) y PDF, convirtiéndolos a Markdown con frontmatter YAML antes de indexarlos.
+
+### Conversor Word → Markdown (`src/ingestion/docx_to_md.py`)
+Extrae texto de archivos .docx usando `python-docx` y lo convierte a Markdown con:
+- Encabezados (`#`, `##`, `###`) preservando la jerarquía del documento original.
+- Negritas y formato básico.
+- Frontmatter YAML automático con `id`, `title`, `categoria: importado`, `autor: Sistema SGD`, `creado`, `tags` y `Link to`.
+- Enlaces wiki `[[enlace]]` preservados para crear aristas en el grafo.
+
+### Flujo de Uso
+```bash
+# 1. Convertir un documento Word a Markdown
+python3 src/ingestion/docx_to_md.py "data/contrato msp.docx" "data/contrato msp.md"
+
+# 2. Reindexar (el indexer limpia duplicados previos antes de insertar)
+POST /index   # vía API, Streamlit o python3 run_demo.py
+
+# 3. Consultar sobre el documento importado
+python3 run_chat.py llamacpp http://localhost:8080
+```
+
+Los documentos convertidos entran en el pipeline estándar (Parser → Chunker → Grafo → VectorStore) y se recuperan en consultas híbridas igual que cualquier Markdown nativo.
+
+### PDF (pendiente)
+Documentado en el backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesseract`/`easyocr`) para PDF escaneados.
+
+---
+
 ## 🚀 Hoja de Ruta
 
 1. **Fase 1:** Diseño arquitectónico, directrices y estructuración documental. *(Completado)*
@@ -261,3 +291,4 @@ Cada consulta elimina automáticamente fragmentos repetidos (por `chunk_id` y po
 9. **Sprint 1 (v0.9.0):** Mejoras Core - Graph Expansion real, LLM Retry/Backoff, Config Centralizada. *(Completado)*
 10. **Sprint 1.1 (v0.9.1):** TUI Textual, Configuración `.env` y Soporte Multi-Interfaz. *(Completado)*
 11. **Sprint 1.2 (v0.9.2):** Modelo Ligero 1B, Deduplicación de Contextos y Optimización para Hardware Limitado. *(Completado)*
+12. **Sprint 1.3 (v0.9.3):** Ingesta de Documentos Word (.docx) y PDF. *(Completado)*

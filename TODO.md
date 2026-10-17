@@ -1,14 +1,13 @@
 # TODO.md
 
 ## Objetivo actual
-Sistema Graph RAG para SGD (v0.9.2) estable tras Sprint 1, Sprint 1.1 y Sprint 1.2: expansión de grafo con contenido real de chunks, cliente LLM con reintentos exponenciales, configuración centralizada en `src/config/settings.py`, archivo `.env` para configuración por entorno, TUI Textual como alternativa a Streamlit, modelo LLM ligero 1B (gemma-3-1b-it), deduplicación de contextos por hash de contenido, y limpieza de duplicados al re-indexar.
+Sistema Graph RAG para SGD (v0.9.3) estable tras Sprint 1, Sprint 1.1, Sprint 1.2 y Sprint 1.3: expansión de grafo con contenido real de chunks, cliente LLM con reintentos exponenciales, configuración centralizada, modelo LLM ligero 1B, deduplicación de contextos por hash, limpieza de duplicados al re-indexar, e ingesta de documentos Word (.docx) convertidos a Markdown.
 
 ## Tareas pendientes (backlog - nuevas fuentes de documento)
-- Crear herramienta de ingesta de documentos Word (.docx) y PDF para alimentar el grafo de conocimiento.
-  - Usar librerías Python: `python-docx` para .docx, `pypdf`/`PyPDF2`/`pdfplumber` para PDF.
-  - Para PDF escaneados o sin capa de texto: integrar OCR con `pytesseract` (requiere Tesseract instalado) o `easyocr`.
-  - Adaptar el pipeline actual (Parser → Chunker → Grafo → VectorStore) para aceptar texto extraído de Word/PDF y generar chunks con frontmatter sintético (título, fuente, fecha de ingestión).
-  - Añadir endpoint o comando CLI para indexar archivos .docx/.pdf desde `data/` o ruta configurada.
+- ✅ **Word (.docx):** Implementado en Sprint 1.3 con `src/ingestion/docx_to_md.py` (`python-docx`).
+- **PDF:** Pendiente — integrar con `pypdf`/`pdfplumber` y OCR (`pytesseract`/`easyocr`) para PDF escaneados.
+  - Adaptar el pipeline actual para aceptar texto extraído de PDF y generar chunks con frontmatter sintético.
+  - Añadir endpoint o comando CLI para indexar archivos .pdf desde `data/` o ruta configurada.
 
 ## Tareas pendientes
 - Reindexar documentos: colocar nuevos `.md` en `data/` y ejecutar `POST /index` o `python3 run_demo.py` (el indexer ahora limpia chunks previos antes de insertar).
@@ -17,6 +16,14 @@ Sistema Graph RAG para SGD (v0.9.2) estable tras Sprint 1, Sprint 1.1 y Sprint 1
 - Documentar en `docs/` el uso de `PLAN.md`/`TODO.md` para seguimiento de sprints.
 - Probar LLM más ligero: Qwen2.5-3B-Instruct Q4_K_M (Qwen2.5-7B va muy lento en dev). Alternativa: Llama3.2-3B-Instruct.
 - Considerar visualización interactiva del grafo en Streamlit (pyvis / streamlit-agraph) — ver roadmap en `release.md`.
+
+## Tareas completadas (esta sesión - Sprint 1.3 v0.9.3)
+- Conversor Word → Markdown (`src/ingestion/docx_to_md.py`): extrae texto de .docx con `python-docx`, genera frontmatter YAML automático, preserva encabezados, negritas y enlaces wiki `[[...]]`.
+- Pipeline de ingesta Word/PDF integrado: los .md convertidos entran al pipeline estándar (Parser → Chunker → Grafo → VectorStore).
+- Frontmatter sintético para documentos importados: `id`, `title`, `categoria: importado`, `autor: Sistema SGD`, `creado`, `tags: ["#importado", "#word"]`, `Link to: null`.
+- Prueba real con `data/contrato msp.docx` → `data/contrato msp.md` → indexado (89 chunks totales, nodo `contrato_msp` en el grafo).
+- Pruebas unitarias: `11 passed` (`PYTHONPATH=. pytest tests/ -q`)
+- Documentación: `release.md` (v0.9.3), `README.md` (sprint 1.3 + sección ingesta Word/PDF), `TODO.md` (este archivo)
 
 ## Tareas completadas (esta sesión - Sprint 1.2 v0.9.2)
 - Modelo LLM ligero por defecto: `llm_model_name` = `gemma-3-1b-it` en `src/config/settings.py`
@@ -53,6 +60,10 @@ Sistema Graph RAG para SGD (v0.9.2) estable tras Sprint 1, Sprint 1.1 y Sprint 1
 - `src/retrieval/hybrid.py` — expansión de grafo con contenido real de chunks
 - `src/api/main.py` — validación de timeout (10-600s), top_k (1-20), graph_radius (0-5), backend enum
 - `AGENTS.md`, `README.md`, `release.md` — documentación actualizada
+
+## Archivos modificados (Sprint 1.3 v0.9.3)
+- `src/ingestion/docx_to_md.py` — nuevo: conversor Word → Markdown con frontmatter YAML
+- `release.md`, `README.md`, `TODO.md` — documentación v0.9.3
 
 ## Archivos modificados (Sprint 1.2 v0.9.2)
 - `src/config/settings.py` — modelo 1B, n_predict, temperature, ctx_size, top_k=3

@@ -1,5 +1,32 @@
 # Notas de Versión - Graph RAG para SGD
 
+## v0.9.3-alpha (Sprint 1.3: Ingesta de Documentos Word y PDF)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se completa el **Sprint 1.3** con la capacidad de alimentar el grafo de conocimiento y la base vectorial a partir de documentos Word (.docx) y PDF, convirtiéndolos a Markdown con frontmatter YAML antes de indexarlos. Permite incorporar documentación existente del SGD sin tener que reescribirla manualmente en Markdown.
+
+### ✨ Novedades y Componentes Implementados
+- **Conversor Word → Markdown (`src/ingestion/docx_to_md.py`):** Nueva herramienta que extrae texto de archivos .docx usando `python-docx` y lo convierte a Markdown con estructura de encabezados (`#`, `##`, `###`), negritas y frontmatter YAML automático (título, categoría, autor, fecha, tags, ID).
+- **Pipeline de ingesta Word/PDF:** Los archivos .docx convertidos a .md entran en el pipeline estándar (Parser → Chunker → Grafo → VectorStore), por lo que se indexan, crean nodos en el grafo y se recuperan en consultas híbridas igual que cualquier documento Markdown nativo.
+- **Frontmatter sintético para documentos importados:** Se genera automáticamente `id`, `title`, `categoria: importado`, `autor: Sistema SGD`, `creado` (fecha de conversión), `tags: ["#importado", "#word"]` y `Link to: null`.
+- **Preservación de enlaces wiki:** Si el documento Word contiene referencias tipo `[[enlace]]`, se conservan en el Markdown resultante y se crean las aristas correspondientes en el grafo.
+- **PDF (pendiente):** Documentado en backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesseract`/`easyocr`) para PDF escaneados.
+
+### 🔧 Flujo de Uso
+```bash
+# 1. Convertir un documento Word a Markdown
+python3 src/ingestion/docx_to_md.py "data/contrato msp.docx" "data/contrato msp.md"
+
+# 2. Reindexar (el indexer limpia duplicados previos antes de insertar)
+POST /index   # vía API, Streamlit o python3 run_demo.py
+
+# 3. Consultar sobre el documento importado
+python3 run_chat.py llamacpp http://localhost:8080
+```
+
+---
+
 ## v0.9.2-alpha (Sprint 1.2: Modelo Ligero 1B, Deduplicación de Contextos y Optimización para Hardware Limitado)
 **Fecha:** Octubre 2026
 
