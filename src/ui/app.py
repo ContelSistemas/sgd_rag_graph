@@ -12,13 +12,13 @@ from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
 from src.retrieval.hybrid import HybridRetriever
 from src.generation.local_llm import LocalLLMClient
-from src.vectorstore.indexer import SGDIndexer
+from src.vectorstore.indexer import KnowledgeBaseIndexer
 from src.ui.markdown_editor import render_markdown_editor
 
 settings = get_settings()
 
 st.set_page_config(
-    page_title="Graph RAG para SGD - Interfaz Web On-Premise",
+    page_title="Graph RAG para Base del Conocimiento - Interfaz Web On-Premise",
     page_icon="📚",
     layout="wide"
 )
@@ -32,10 +32,10 @@ def init_rag_components():
 
 vector_store, graph_manager, retriever = init_rag_components()
 
-st.title("📚 Graph RAG para Sistema de Gestión Documental (SGD)")
+st.title("📚 Graph RAG para Base del Conocimiento")
 st.markdown("Recuperación Aumentada por Grafo de Conocimiento y Búsqueda Vectorial (*On-Premise*)")
 
-tab_chat, tab_editor = st.tabs(["💬 Asistente SGD", "📝 Editor Documentos"])
+tab_chat, tab_editor = st.tabs(["💬 Asistente Base del Conocimiento", "📝 Editor Documentos"])
 
 with tab_chat:
     # Sidebar para configuración
@@ -52,10 +52,10 @@ with tab_chat:
         
         st.markdown("---")
         st.subheader("🔄 Ingesta / Indexación")
-        if st.button("Ejecutar Indexación SGD", type="primary"):
+        if st.button("Ejecutar Indexación Base del Conocimiento", type="primary"):
             with st.spinner("Indexando documentos Markdown y actualizando grafo..."):
                 try:
-                    indexer = SGDIndexer(data_dir=settings.data_dir, vector_dir=settings.vector_store_dir)
+                    indexer = KnowledgeBaseIndexer(data_dir=settings.data_dir, vector_dir=settings.vector_store_dir)
                     total = indexer.run_indexing()
                     # Recargar grafo persistido en la instancia cacheada
                     graph_manager.load_from_json(settings.graph_persist_path)
@@ -68,7 +68,7 @@ with tab_chat:
         st.info(f"📊 Estadísticas del Grafo:\n- Nodos: {len(graph_manager.graph.nodes)}\n- Relaciones: {len(graph_manager.graph.edges)}")
 
     # Sección principal de Chat / Consultas
-    st.subheader("💬 Asistente de Consultas del SGD")
+    st.subheader("💬 Asistente de Consultas de la Base del Conocimiento")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -77,7 +77,7 @@ with tab_chat:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             if "sources" in message and message["sources"]:
-                with st.expander("🔍 Fuentes y Referencias del SGD"):
+                with st.expander("🔍 Fuentes y Referencias de la Base del Conocimiento"):
                     seen_sources = set()
                     for src in message["sources"]:
                         meta = src.get("metadata", {})
@@ -89,7 +89,7 @@ with tab_chat:
                         seen_sources.add(source_key)
                         st.write(f"- **{title}** (`{source_path}`)")
 
-    if prompt := st.chat_input("Escribe tu pregunta sobre la documentación del SGD..."):
+    if prompt := st.chat_input("Escribe tu pregunta sobre la Base del Conocimiento..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -113,7 +113,7 @@ with tab_chat:
                     
                     st.markdown(answer)
                     if contexts:
-                        with st.expander("🔍 Fuentes y Referencias del SGD"):
+                        with st.expander("🔍 Fuentes y Referencias de la Base del Conocimiento"):
                             seen_sources = set()
                             for src in contexts:
                                 meta = src.get("metadata", {})

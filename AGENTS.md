@@ -1,7 +1,7 @@
-# AGENTS.md - Graph RAG para SGD
+# AGENTS.md - Graph RAG para Base del Conocimiento
 
 ## Project Overview
-Graph RAG system for on-premise document management (SGD). Combines vector search (ChromaDB + sentence-transformers) with knowledge graph (NetworkX) for hybrid retrieval, plus local LLM generation (Ollama / llama.cpp).
+Graph RAG system for on-premise knowledge base (Base del Conocimiento). Combines vector search (ChromaDB + sentence-transformers) with knowledge graph (NetworkX) for hybrid retrieval, plus local LLM generation (Ollama / llama.cpp).
 
 ## Key Commands
 
@@ -47,7 +47,7 @@ docker-compose --profile ui up --build
 | Markdown Parser | `src/ingestion/parser.py` | Extracts frontmatter, wiki links `[[link\|alias]]`, headers |
 | Hierarchical Chunker | `src/ingestion/chunker.py` | Splits by header hierarchy preserving context |
 | Knowledge Graph | `src/graph/manager.py` | NetworkX DiGraph, persists to `data/knowledge_graph.json` |
-| Vector Store | `src/vectorstore/store.py` | ChromaDB + sentence-transformers (all-MiniLM-L6-v2) |
+| Vector Store | `src/vectorstore/store.py` | ChromaDB + sentence-transformers (paraphrase-multilingual-mpnet-base-v2) |
 | Indexer | `src/vectorstore/indexer.py` | Orchestrates parser → chunker → graph → vector store |
 | Hybrid Retriever | `src/retrieval/hybrid.py` | Vector search + graph neighbor expansion |
 | Local LLM Client | `src/generation/local_llm.py` | Multi-backend: Ollama (`/api/generate`) + llama.cpp (`/completion`) |
@@ -57,7 +57,7 @@ docker-compose --profile ui up --build
 ## Data Layout
 ```
 data/
-├── *.md                    # Source SGD documents
+├── *.md                    # Source Knowledge Base documents
 ├── vectorstore/            # ChromaDB persistence
 └── knowledge_graph.json    # NetworkX graph export
 ```
@@ -68,10 +68,12 @@ data/
 | `LLM_BACKEND` | `llamacpp` | `ollama` or `llamacpp` |
 | `LLM_BASE_URL` | `http://localhost:8080` | LLM server URL |
 | `LLM_TIMEOUT` | `300` | Request timeout in seconds |
+| `EMBEDDING_MODEL` | `paraphrase-multilingual-mpnet-base-v2` | Embedding model for vector store |
+| `DEFAULT_TOP_K` | `20` | Default number of retrieved chunks |
 
 ## LLM Backends
-- **llama.cpp**: `llama-server -hf ggml-org/gemma-3-1b-it-GGUF -c 2048 --port 8080` (lightweight)
-- **Ollama**: `ollama serve && ollama pull llama3`
+- **llama.cpp**: `llama-server -hf bartowski/Qwen2.5-3B-Instruct-GGUF:Q4_K_S -c 4096 --port 8080` (recomendado para v0.9.5)
+- **Ollama**: `ollama serve && ollama pull qwen2.5:3b`
 - Configure in code: `LocalLLMClient(backend="llamacpp", base_url="http://localhost:8080", timeout=300)`
 
 ## Development Notes
@@ -94,3 +96,9 @@ data/
 - **LLM client** has exponential backoff retry (`max_retries=3`, `base_delay=1s`)
 - **Centralized config** in `src/config/settings.py` (pydantic-settings) with validation
 - **API validates** timeout (10-600s), top_k (1-20), graph_radius (0-5), backend enum
+
+## Sprint 1.5 Improvements (v0.9.5)
+- **Keyword search** added to `VectorStoreManager` (`keyword_search`) for exact text matching of technical terms (e.g. `XGE1/0/25`, IPs, VLANs) that semantic embeddings miss
+- **HybridRetriever** integrates `keyword_search` before vector search, prioritizing keyword hits; auto-extracts technical keywords via regex
+- **Embedding model** changed to `paraphrase-multilingual-mpnet-base-v2` (768 dims) — requires reindexing (`rm -rf data/vectorstore`)
+- **default_top_k** increased to 20; **MAX_CONTEXTS_PER_SOURCE** increased to 10

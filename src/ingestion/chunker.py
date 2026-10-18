@@ -40,7 +40,13 @@ class HierarchicalMarkdownChunker:
             level = len(match.group(1))
             title = match.group(2).strip()
             start_pos = match.start()
-            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(content)
+            # Buscar el siguiente encabezado del MISMO nivel o superior (no inferior)
+            end_pos = len(content)
+            for j in range(i + 1, len(matches)):
+                next_level = len(matches[j].group(1))
+                if next_level <= level:
+                    end_pos = matches[j].start()
+                    break
             
             chunk_content = content[start_pos:end_pos].strip()
             

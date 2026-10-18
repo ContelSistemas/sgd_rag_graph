@@ -5,7 +5,7 @@ from src.retrieval.hybrid import HybridRetriever
 from src.generation.local_llm import LocalLLMClient
 
 def main():
-    print("=== Chat Interactivo - Graph RAG para SGD ===")
+    print("=== Chat Interactivo - Graph RAG para Base del Conocimiento ===")
     print("Inicializando componentes...")
     
     vector_store = VectorStoreManager(persist_directory="data/vectorstore")
@@ -22,17 +22,17 @@ def main():
         
     llm = LocalLLMClient(backend=backend, base_url=base_url, timeout=300)
     print(f"LLM conectado con backend '{backend}' en '{base_url}'.")
-    print("Escribe tu consulta sobre el SGD (o 'salir' para terminar):\n")
+    print("Escribe tu consulta sobre la Base del Conocimiento (o 'salir' para terminar):\n")
     
     while True:
         try:
-            query = input("SGD Query > ").strip()
+            query = input("KB Query > ").strip()
             if not query or query.lower() in ["salir", "exit", "quit"]:
                 print("¡Hasta luego!")
                 break
                 
             print("Buscando en vector store y grafo de conocimiento...")
-            results = retriever.retrieve(query, top_k=3, graph_radius=1)
+            results = retriever.retrieve(query, top_k=50, graph_radius=1)
             
             print(f"Recuperados {len(results)} fragmentos/contextos.")
             print("Generando respuesta con LLM local...")

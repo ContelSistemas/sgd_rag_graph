@@ -6,8 +6,8 @@ from src.ingestion.chunker import HierarchicalMarkdownChunker
 from src.graph.manager import KnowledgeGraphManager
 from src.vectorstore.store import VectorStoreManager
 
-class SGDIndexer:
-    """Pipeline completo de indexación para el SGD (Parser + Chunker + Graph + VectorStore)."""
+class KnowledgeBaseIndexer:
+    """Pipeline completo de indexación para la Base del Conocimiento (Parser + Chunker + Graph + VectorStore)."""
 
     def __init__(self, data_dir: Optional[str] = None, vector_dir: Optional[str] = None):
         settings = get_settings()

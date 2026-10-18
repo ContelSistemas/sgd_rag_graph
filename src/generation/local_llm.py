@@ -22,27 +22,29 @@ class LocalLLMClient:
 
     def _build_prompt(self, query: str, context_chunks: List[Dict[str, Any]]) -> str:
         context_text = "\n\n".join([
-            f"[{c.get('metadata', {}).get('title', 'SGD')}] {c['content'][:500]}"
+            f"[{c.get('metadata', {}).get('title', 'Sin título')}] {c['content'][:800]}"
             for c in context_chunks
         ])
-        if len(context_text) > 2000:
-            context_text = context_text[:2000] + "\n..."
-        return f"""Eres un asistente experto para el SGD. Responde usando SOLO el contexto provisto.
+        if len(context_text) > 3000:
+            context_text = context_text[:3000] + "\n..."
+        return f"""Eres un asistente experto para la Base del Conocimiento. Responde usando SOLO el contexto provisto.
 
-Instrucciones:
+Instrucciones obligatorias:
+- Lee TODO el contexto cuidadosamente y busca fechas, eventos y detalles relacionados con la pregunta.
+- Extrae la respuesta directamente del contexto; no inventes datos ni fechas.
 - Sintetiza con TUS PROPIAS PALABRAS; NO copies ni pegues texto de los documentos.
-- NO repitas información ni frases ya dichas; responde una sola vez por cada idea.
-- Razona paso a paso y sé conciso.
-- Si la info no está en el contexto, indícalo y no inventes.
-- Cita las fuentes al final.
+- NO incluyas la pregunta dentro de la respuesta. No escribas "Pregunta:", "Respuesta:", "Contexto:" ni etiquetas similares.
+- Responde de forma directa y concisa, una sola vez por cada idea.
+- SI la información no está en el contexto, responde exactamente: "No hay información suficiente en el contexto para responder esta pregunta." No inventes ni cites documentos que no aparecen en el contexto.
+- Cita las fuentes al final usando el formato real del título entre corchetes, ej: [Parque Santiago - Muro de Conocimiento].
 
 Contexto:
 {context_text}
 
-Pregunta:
+Pregunta del usuario:
 {query}
 
-Respuesta:"""
+Respuesta directa:"""
 
     def _request_with_retry(self, url: str, payload: Dict[str, Any]) -> requests.Response:
         last_error = None
@@ -69,14 +71,24 @@ Respuesta:"""
         raise requests.RequestException(f"Failed after {self.max_retries} retries. Last error: {last_error}")
 
     def _deduplicate_response(self, text: str) -> str:
-        """Elimina frases y bloques repetidos de la respuesta generada."""
+        """Limpia y elimina frases/bloques repetidos de la respuesta generada."""
         if not text:
             return text
         lines = [l.strip() for l in text.splitlines() if l.strip()]
+        cleaned = []
+        for line in lines:
+            low = line.lower()
+            # Elimina bloques tipo "Pregunta:", "Respuesta:", "Contexto:" generados por el modelo
+            if low.startswith("pregunta:") or low.startswith("respuesta:") or low.startswith("contexto:"):
+                continue
+            # Elimina líneas que solo repitan la pregunta del usuario
+            if low.startswith("pregunta del usuario:"):
+                continue
+            cleaned.append(line)
+        # Dedup de líneas repetidas
         seen = set()
         unique_lines = []
-        for line in lines:
-            # Normalizar para detección de duplicados (ignora puntuación extra)
+        for line in cleaned:
             norm = re.sub(r'\s+', ' ', line.lower()).strip(' .,:;-')
             if norm and norm not in seen:
                 seen.add(norm)
@@ -90,7 +102,9 @@ Respuesta:"""
             if self.backend == "llamacpp":
                 response = self._request_with_retry(
                     f"{self.base_url}/completion",
-                    {"prompt": prompt, "n_predict": self.n_predict, "temperature": self.temperature, "repeat_penalty": self.repeat_penalty}
+                    {"prompt": prompt, "n_predict": self.n_predict, "temperature": self.temperature,
+                     "repeat_penalty": self.repeat_penalty,
+                     "stop": ["\nPregunta:", "\nRespuesta:", "\nContexto:", "Pregunta:", "Respuesta:", "Contexto:"]}
                 )
                 raw = response.json().get("content", "No se pudo generar respuesta.")
             else:

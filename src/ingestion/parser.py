@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 import yaml
 
 class MarkdownParser:
-    """Parser para documentos Markdown del SGD. Extrae frontmatter YAML, enlaces wiki [[enlace]] y contenido."""
+    """Parser para documentos Markdown de la Base del Conocimiento. Extrae frontmatter YAML, enlaces wiki [[enlace]] y contenido."""
     
     WIKI_LINK_REGEX = re.compile(r'\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]')
 

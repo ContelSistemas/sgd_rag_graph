@@ -1,6 +1,6 @@
-# Graph RAG para SGD (Sistema de Gestión Documental)
+# Graph RAG para Base del Conocimiento
 
-Sistema avanzado de Recuperación Aumentada por Generación (RAG) basado en Grafos de Conocimiento y Búsqueda Vectorial, diseñado específicamente para operar en entornos locales (*on-premise*) y asegurar la privacidad y soberanía de la documentación del Sistema de Gestión Documental (SGD).
+Sistema avanzado de Recuperación Aumentada por Generación (RAG) basado en Grafos de Conocimiento y Búsqueda Vectorial, diseñado específicamente para operar en entornos locales (*on-premise*) y asegurar la privacidad y soberanía de la documentación de la Base del Conocimiento.
 
 ---
 
@@ -10,8 +10,9 @@ Sistema avanzado de Recuperación Aumentada por Generación (RAG) basado en Graf
 - **Mantenimiento del Contexto Estructural:** Explotación de la topología documental subyacente en archivos Markdown (enlaces tipo wiki `[[enlace]]`, metadatos frontmatter y jerarquía de encabezados).
 - **Recuperación Híbrida (Graph + Vector):**
   - **Búsqueda Vectorial Semántica:** Recuperación de fragmentos mediante similitud de coseno (dense retrieval) con embeddings ligeros locales.
+  - **Búsqueda por Palabra Clave:** Búsqueda de texto exacto (`keyword_search`) sobre contenido de chunks para recuperar términos técnicos específicos (ej. puertos `XGE1/0/25`, IPs, VLANs) que embeddings semánticos pueden no encontrar.
   - **Búsqueda Relacional en Grafo:** Exploración de nodos vecinos en el grafo de conocimiento para rescatar contexto complementario y dependencias cruzadas.
-- **Generación Local (LLM):** Integración con motores LLM locales para la síntesis de respuestas con referencias precisas a los ficheros originales del SGD.
+- **Generación Local (LLM):** Integración con motores LLM locales para la síntesis de respuestas con referencias precisas a los ficheros originales de la Base del Conocimiento.
 
 ---
 
@@ -19,7 +20,7 @@ Sistema avanzado de Recuperación Aumentada por Generación (RAG) basado en Graf
 
 ```mermaid
 graph TD
-    A[Documentos Markdown SGD] --> B[Ingesta y Procesamiento]
+    A[Documentos Markdown Base del Conocimiento] --> B[Ingesta y Procesamiento]
     B --> C[Parser de Markdown & Extracción Frontmatter]
     B --> D[Chunking Estructural por Encabezados]
     B --> E[Gestor de Grafo NetworkX / Wiki Links]
@@ -34,7 +35,7 @@ graph TD
     J & K --> L[Fusión y Re-ranking]
     
     L --> M[Capa de Generación - LLM Local]
-    M --> N[Respuesta con Referencias al SGD]
+    M --> N[Respuesta con Referencias a la Base del Conocimiento]
 ```
 
 ---
@@ -44,7 +45,7 @@ graph TD
 ```text
 grafrac/
 ├── config/              # Configuración centralizada (pydantic-settings)
-├── data/                # Documentos del SGD y persistencia local
+├── data/                # Documentos de la Base del Conocimiento y persistencia local
 ├── docs/                # Documentación y esquemas (mindmap, SVG)
 ├── src/                 # Código fuente (ingestion, graph, vectorstore, retrieval, generation, api, ui, config)
 ├── tests/               # Pruebas unitarias e integración
@@ -75,7 +76,7 @@ Para configurar y probar el proyecto en un entorno local de desarrollo:
    pip install -r requirements.txt
    ```
 4. **Configurar el entorno:**
-   - Coloca los archivos Markdown de tu SGD en el directorio `data/` o configura la ruta en `config/`.
+   - Coloca los archivos Markdown de tu Base del Conocimiento en el directorio `data/` o configura la ruta en `config/`.
 5. **Ejecutar pruebas unitarias:**
    ```bash
    PYTHONPATH=. pytest tests/ -v
@@ -91,7 +92,7 @@ cp .env.example .env
 PYTHONPATH=. pytest tests/ -v
 ```
 
-Todas las variables están centralizadas en `src/config/settings.py` (pydantic-settings) y se cargan automáticamente al iniciar cualquier componente (`LocalLLMClient`, `VectorStoreManager`, `KnowledgeGraphManager`, `SGDIndexer`, etc.).
+Todas las variables están centralizadas en `src/config/settings.py` (pydantic-settings) y se cargan automáticamente al iniciar cualquier componente (`LocalLLMClient`, `VectorStoreManager`, `KnowledgeGraphManager`, `KnowledgeBaseIndexer`, etc.).
 
 ### 6. Ejecución de la TUI Textual (Interfaz de Terminal)
 
@@ -101,7 +102,7 @@ Como alternativa a la interfaz web Streamlit, el proyecto incluye una TUI basada
 python3 src/ui/tui.py
 ```
 
-La TUI incluye chat interactivo, barra lateral de configuración (backend, URL, timeout, top-k, radio de grafo), botón de indexación SGD y estadísticas del grafo. No requiere servidor web y se ejecuta directamente en la terminal.
+La TUI incluye chat interactivo, barra lateral de configuración (backend, URL, timeout, top-k, radio de grafo), botón de indexación Base del Conocimiento y estadísticas del grafo. No requiere servidor web y se ejecuta directamente en la terminal.
 
 ### 7. Ejecución del Chat CLI Interactivo (Fase 7)
 
@@ -127,11 +128,11 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --ws none
 
 Endpoints disponibles:
 - `GET /health`: Estado de salud del servicio.
-- `POST /index`: Ejecuta la indexación de los documentos del SGD.
+- `POST /index`: Ejecuta la indexación de los documentos de la Base del Conocimiento.
 - `POST /query`: Realiza una consulta híbrida (vectorial + grafo) y síntesis con LLM local.
 
 
-Para ejecutar la demostración completa del sistema (Fase 5) indexando la documentación del SGD, realizando recuperación híbrida y consultando al LLM local (ej. Llama.cpp en `http://localhost:8080`):
+Para ejecutar la demostración completa del sistema (Fase 5) indexando la documentación de la Base del Conocimiento, realizando recuperación híbrida y consultando al LLM local (ej. Llama.cpp en `http://localhost:8080`):
 
 ```bash
 python3 run_demo.py
@@ -197,7 +198,7 @@ Para el despliegue definitivo en el servidor local de producción asegurando la 
    Crear un archivo de servicio en `/etc/systemd/system/grafrac.service`:
    ```ini
    [Unit]
-   Description=Graph RAG para SGD
+   Description=Graph RAG para Base del Conocimiento
    After=network.target ollama.service
 
    [Service]
@@ -236,12 +237,13 @@ python3 run_chat.py llamacpp http://localhost:8080
 ### Parámetros por defecto optimizados (`src/config/settings.py`)
 | Parámetro | Valor | Efecto |
 |-----------|-------|--------|
-| `llm_model_name` | `gemma-3-1b-it` | Modelo 1B, bajo consumo de RAM/CPU |
-| `llm_n_predict` | 256 | Máximo de tokens generados por respuesta |
+| `llm_model_name` | `qwen2.5-3b-instruct` | Modelo 3B para respuestas precisas en CPU |
+| `llm_n_predict` | 512 | Máximo de tokens generados por respuesta |
 | `llm_temperature` | 0.3 | Menor variación, respuestas más deterministas |
-| `llm_ctx_size` | 2048 | Ventana de contexto reducida |
-| `default_top_k` | 3 | Menos fragmentos recuperados por consulta |
-| `MAX_CONTEXTS` (retriever) | 6 | Tope de contextos enviados al LLM |
+| `llm_ctx_size` | 4096 | Ventana de contexto ampliada |
+| `default_top_k` | 20 | Más fragmentos recuperados antes del filtrado |
+| `MAX_CONTEXTS_PER_SOURCE` (retriever) | 10 | Tope de contextos por fuente de documento |
+| `EMBEDDING_MODEL` | `paraphrase-multilingual-mpnet-base-v2` | Embeddings 768 dims, mejor para español y términos técnicos |
 
 ### Deduplicación de contextos
 Cada consulta elimina automáticamente fragmentos repetidos (por `chunk_id` y por hash de contenido) tanto de la búsqueda vectorial como de la expansión de grafo, evitando respuestas "corta-pega" y fuentes duplicadas.
@@ -256,7 +258,7 @@ El sistema puede alimentar el grafo de conocimiento y la base vectorial a partir
 Extrae texto de archivos .docx usando `python-docx` y lo convierte a Markdown con:
 - Encabezados (`#`, `##`, `###`) preservando la jerarquía del documento original.
 - Negritas y formato básico.
-- Frontmatter YAML automático con `id`, `title`, `categoria: importado`, `autor: Sistema SGD`, `creado`, `tags` y `Link to`.
+- Frontmatter YAML automático con `id`, `title`, `categoria: importado`, `autor: Sistema Base del Conocimiento`, `creado`, `tags` y `Link to`.
 - Enlaces wiki `[[enlace]]` preservados para crear aristas en el grafo.
 
 ### Flujo de Uso
@@ -284,7 +286,7 @@ Documentado en el backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesse
 2. **Fase 2:** Implementación del Parser de Markdown, extracción de enlaces wiki y construcción del grafo con NetworkX. *(Completado)*
 3. **Fase 3:** Configuración del sistema de chunking jerárquico y almacenamiento vectorial local. *(Completado)*
 4. **Fase 4:** Desarrollo del motor de recuperación híbrida (Vector + Grafo) y conexión con LLM local. *(Completado)*
-5. **Fase 5:** Pruebas de integración sobre documentación real del SGD y optimización de rendimiento. *(Completado)*
+5. **Fase 5:** Pruebas de integración sobre documentación real de la Base del Conocimiento y optimización de rendimiento. *(Completado)*
 6. **Fase 6:** Capa de Servicio (API REST con FastAPI) y Orquestación. *(Completado)*
 7. **Fase 7:** Persistencia del Grafo, Interfaz de Chat CLI Interactiva y Contenerización Docker/Docker Compose. *(Completado)*
 8. **Fase 8A:** Interfaz Web Visual con Streamlit y Panel de Control. *(Completado)*

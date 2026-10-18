@@ -80,7 +80,7 @@ def extract_wiki_links(content: str) -> List[Dict[str, str]]:
     return links
 
 def render_markdown_editor():
-    st.header("📝 Editor de Documentos Markdown SGD")
+    st.header("📝 Editor de Documentos Markdown Base del Conocimiento")
     st.markdown("Gestiona el frontmatter obligatorio y el contenido de tus documentos `.md` en `/data`.")
     
     files = get_markdown_files()
@@ -163,9 +163,9 @@ def render_markdown_editor():
                         "id": new_id,
                         "title": new_title,
                         "categoria": new_categoria,
-                        "autor": "Usuario SGD",
+                        "autor": "Usuario Base del Conocimiento",
                         "creado": date.today().isoformat(),
-                        "tags": ["#sgd"],
+                        "tags": ["#kb"],
                         "status": "borrador"
                     }
                     body = f"# {new_title}\n\nContenido del documento..."

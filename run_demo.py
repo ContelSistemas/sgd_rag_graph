@@ -1,16 +1,16 @@
 from pathlib import Path
-from src.vectorstore.indexer import SGDIndexer
+from src.vectorstore.indexer import KnowledgeBaseIndexer
 from src.retrieval.hybrid import HybridRetriever
 from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
 from src.generation.local_llm import LocalLLMClient
 
 def main():
-    print("=== Graph RAG para SGD - Demostración de Integración E2E (Fase 5) ===")
+    print("=== Graph RAG para Base del Conocimiento - Demostración de Integración E2E (Fase 5) ===")
     
-    # 1. Indexación de documentos del SGD
+    # 1. Indexación de documentos de la Base del Conocimiento
     print("\n[1] Iniciando indexación de documentos en 'data/'...")
-    indexer = SGDIndexer(data_dir="data", vector_dir="data/vectorstore")
+    indexer = KnowledgeBaseIndexer(data_dir="data", vector_dir="data/vectorstore")
     total_chunks = indexer.run_indexing()
     print(f" -> Indexación completada. Total de chunks indexados: {total_chunks}")
     print(f" -> Nodos en el grafo de conocimiento: {len(indexer.graph_manager.graph.nodes)}")

@@ -27,7 +27,7 @@ from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
 from src.retrieval.hybrid import HybridRetriever
 from src.generation.local_llm import LocalLLMClient
-from src.vectorstore.indexer import SGDIndexer
+from src.vectorstore.indexer import KnowledgeBaseIndexer
 
 
 class GraphRAGTUI(App):
@@ -48,12 +48,12 @@ class GraphRAGTUI(App):
                 yield Input(placeholder=str(settings.default_top_k), id="top_k_input", value=str(settings.default_top_k))
                 yield Input(placeholder="1", id="graph_radius_input", value="1")
                 yield Static()
-                yield Button("Indexar SGD", id="btn_index", variant="primary")
+                yield Button("Indexar Base del Conocimiento", id="btn_index", variant="primary")
                 yield Button("Limpiar chat", id="btn_clear", variant="default")
                 yield Static(id="stats")
             with Vertical(id="center", classes="panel"):
                 yield Log(id="chat_log", auto_scroll=True)
-                yield Input(placeholder="Escribe tu pregunta sobre la documentación del SGD...", id="chat_input")
+                yield Input(placeholder="Escribe tu pregunta sobre la Base del Conocimiento...", id="chat_input")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -84,7 +84,7 @@ class GraphRAGTUI(App):
     def _index_worker(self) -> None:
         self.app.call_from_thread(self._index_log_write, "[Indexando documentos...]")
         try:
-            indexer = SGDIndexer(data_dir=self.settings.data_dir, vector_dir=self.settings.vector_store_dir)
+            indexer = KnowledgeBaseIndexer(data_dir=self.settings.data_dir, vector_dir=self.settings.vector_store_dir)
             total = indexer.run_indexing()
             self.graph_manager.load_from_json(self.settings.graph_persist_path)
             self.app.call_from_thread(self._update_stats)

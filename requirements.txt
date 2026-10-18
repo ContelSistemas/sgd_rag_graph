@@ -1,4 +1,4 @@
-# Graph RAG para SGD - Dependencias del Proyecto
+# Graph RAG para Base del Conocimiento - Dependencias del Proyecto
 
 # [Core] Ingestión y Análisis Estructural
 PyYAML>=6.0

@@ -1,15 +1,76 @@
-# Notas de Versión - Graph RAG para SGD
+# Notas de Versión - Graph RAG para Base del Conocimiento
+
+## v0.9.5-alpha (Sprint 1.5: Búsqueda por Palabra Clave para Términos Técnicos)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se agrega **búsqueda por palabra clave** (`keyword_search`) como complemento a la búsqueda semántica híbrida, resolviendo el problema de que embeddings no recuperaban términos técnicos específicos (ej. `XGE1/0/25`) aunque el chunk existiera en el índice. Se actualiza el modelo de embeddings a `paraphrase-multilingual-mpnet-base-v2` (768 dims) y se incrementa `default_top_k` a 20 para recuperar más candidatos antes del filtrado por deduplicación.
+
+### ✨ Novedades y Componentes Implementados
+- **Búsqueda por palabra clave (`src/vectorstore/store.py`):** Nuevo método `keyword_search(keywords, top_k)` que utiliza `where_document={"$contains": kw}` de ChromaDB para encontrar chunks cuyo contenido contenga términos técnicos exactos (puertos, IPs, VLANs, IDs de switches). Hace búsquedas separadas por cada palabra clave para evitar que ChromaDB truncé resultados con `$or`.
+- **Integración en Hybrid Retriever (`src/retrieval/hybrid.py`):** `retrieve()` ahora ejecuta `keyword_search` antes de la búsqueda vectorial y prioriza los hits de keyword (más precisos para términos técnicos). Extrae automáticamente palabras clave técnicas de la consulta mediante regex (patrones mayúsculas + palabras de 4+ caracteres excluyendo stopwords en español).
+- **Modelo de embeddings actualizado:** `paraphrase-multilingual-mpnet-base-v2` (768 dims, mejor para español y términos técnicos) reemplazando a `all-MiniLM-L6-v2` (384 dims). Requiere reindexar (`rm -rf data/vectorstore`).
+- **Parámetros ajustados (`src/config/settings.py`, `.env`):** `default_top_k=20` (era 4), `EMBEDDING_MODEL=paraphrase-multilingual-mpnet-base-v2`.
+- **Validación de recuperación:** Probado con consulta "¿Qué pasó con el puerto XGE1/0/25 del switch en PQS?" — el chunk `heading-33-2025-01-22` ahora se recupera correctamente y el LLM puede responder.
+
+### 🔧 Flujo de Uso
+```bash
+# 1. Limpiar índice anterior (requerido por cambio de modelo de embeddings)
+rm -rf data/vectorstore
+
+# 2. Reindexar documentos con nuevo modelo de embeddings
+python3 run_demo.py   # o POST /index vía API/Streamlit
+
+# 3. Probar consulta con término técnico
+python3 run_chat.py llamacpp http://localhost:8080
+# > ¿Qué pasó con el puerto XGE1/0/25 del switch en PQS?
+```
+
+### ⚠️ Nota Importante
+El cambio de modelo de embeddings invalida los vectores previamente indexados en ChromaDB (dimensiones diferentes: 768 vs 384). Es **obligatorio** reindexar (`rm -rf data/vectorstore` + `python3 run_demo.py`) antes de usar esta versión.
+
+---
+
+## v0.9.4-alpha (Sprint 1.4: Mejora de Recuperación y Generación con Modelo 3B)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se completan mejoras en el motor de recuperación híbrida y la capa de generación LLM para trabajar con modelos más grandes (3B). Se corrige el chunker para que encabezados de nivel inferior (`###`) no generen chunks huérfanos, se relajan los filtros de deduplicación que impedían recuperar múltiples chunks del mismo documento, y se ajusta el prompt y parámetros del cliente LLM para que el modelo 3B extraiga información del contexto en lugar de responder "no hay información".
+
+### ✨ Novedades y Componentes Implementados
+- **Chunker corregido (`src/ingestion/chunker.py`):** Los encabezados `###` ahora se agrupan con su sección padre `##` en lugar de crear chunks separados huérfanos. El chunker busca el siguiente encabezado del mismo nivel o superior para delimitar el fin de cada chunk.
+- **Retriever relajado (`src/retrieval/hybrid.py`):** Eliminado el filtro `seen_source_paths` que descartaba todos los chunks posteriores del mismo documento. Ahora permite hasta `MAX_CONTEXTS_PER_SOURCE=5` chunks por fuente y usa `settings.default_top_k` como límite total en lugar de un valor hardcodeado.
+- **Prompt del LLM mejorado (`src/generation/local_llm.py`):** Instrucciones más directivas para leer TODO el contexto y buscar fechas/eventos. Post-procesamiento que filtra bloques "Pregunta:", "Respuesta:", "Contexto:" generados por el modelo. Añadidas secuencias `stop` para llama.cpp. Eliminado print de depuración temporal.
+- **Parámetros optimizados para modelo 3B (`src/config/settings.py`):** `llm_temperature=0.3`, `llm_n_predict=384`, `llm_ctx_size=4096`, `default_top_k=10`.
+- **Chat CLI con mayor `top_k` (`run_chat.py`):** Búsqueda vectorial con `top_k=50` para obtener más candidatos antes de filtrar.
+
+### 🔧 Flujo de Uso
+```bash
+# 1. Limpiar índice anterior (requerido por cambio en el chunker)
+rm -rf data/vectorstore data/knowledge_graph.json
+
+# 2. Reindexar documentos
+python3 run_demo.py   # o POST /index vía API/Streamlit
+
+# 3. Probar consulta con modelo 3B
+python3 run_chat.py llamacpp http://localhost:8080
+```
+
+### ⚠️ Nota Importante
+El cambio en el chunker invalida los chunks previamente indexados en ChromaDB. Es **obligatorio** reindexar (`rm -rf data/vectorstore data/knowledge_graph.json` + `python3 run_demo.py`) antes de usar esta versión.
+
+---
 
 ## v0.9.3-alpha (Sprint 1.3: Ingesta de Documentos Word y PDF)
 **Fecha:** Octubre 2026
 
 ### 📋 Resumen de la Versión
-Se completa el **Sprint 1.3** con la capacidad de alimentar el grafo de conocimiento y la base vectorial a partir de documentos Word (.docx) y PDF, convirtiéndolos a Markdown con frontmatter YAML antes de indexarlos. Permite incorporar documentación existente del SGD sin tener que reescribirla manualmente en Markdown.
+Se completa el **Sprint 1.3** con la capacidad de alimentar el grafo de conocimiento y la base vectorial a partir de documentos Word (.docx) y PDF, convirtiéndolos a Markdown con frontmatter YAML antes de indexarlos. Permite incorporar documentación existente de la Base del Conocimiento sin tener que reescribirla manualmente en Markdown.
 
 ### ✨ Novedades y Componentes Implementados
 - **Conversor Word → Markdown (`src/ingestion/docx_to_md.py`):** Nueva herramienta que extrae texto de archivos .docx usando `python-docx` y lo convierte a Markdown con estructura de encabezados (`#`, `##`, `###`), negritas y frontmatter YAML automático (título, categoría, autor, fecha, tags, ID).
 - **Pipeline de ingesta Word/PDF:** Los archivos .docx convertidos a .md entran en el pipeline estándar (Parser → Chunker → Grafo → VectorStore), por lo que se indexan, crean nodos en el grafo y se recuperan en consultas híbridas igual que cualquier documento Markdown nativo.
-- **Frontmatter sintético para documentos importados:** Se genera automáticamente `id`, `title`, `categoria: importado`, `autor: Sistema SGD`, `creado` (fecha de conversión), `tags: ["#importado", "#word"]` y `Link to: null`.
+- **Frontmatter sintético para documentos importados:** Se genera automáticamente `id`, `title`, `categoria: importado`, `autor: Sistema Base del Conocimiento`, `creado` (fecha de conversión), `tags: ["#importado", "#word"]` y `Link to: null`.
 - **Preservación de enlaces wiki:** Si el documento Word contiene referencias tipo `[[enlace]]`, se conservan en el Markdown resultante y se crean las aristas correspondientes en el grafo.
 - **PDF (pendiente):** Documentado en backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesseract`/`easyocr`) para PDF escaneados.
 
@@ -80,7 +141,7 @@ Se completa el Sprint 1.1 con tres mejoras de operatividad y experiencia de desa
 
 ### ✨ Novedades y Componentes Implementados
 - **Archivo `.env` y `.env.example`:** Variables de entorno por defecto para LLM, Vector Store, Grafo, API y Retrieval. Ignorado en git (`.gitignore` ya incluía `.env`). Carga automática vía `src/config/settings.py` (pydantic-settings).
-- **TUI Textual (`src/ui/tui.py`):** Nueva interfaz de terminal independiente que reusa `LocalLLMClient`, `HybridRetriever`, `KnowledgeGraphManager`, `VectorStoreManager` y `SGDIndexer`. Incluye chat interactivo, configuración de backend/URL/timeout/top-k/radio de grafo, indexación SGD y estadísticas del grafo. No requiere servidor web ni navegador.
+- **TUI Textual (`src/ui/tui.py`):** Nueva interfaz de terminal independiente que reusa `LocalLLMClient`, `HybridRetriever`, `KnowledgeGraphManager`, `VectorStoreManager` y `KnowledgeBaseIndexer`. Incluye chat interactivo, configuración de backend/URL/timeout/top-k/radio de grafo, indexación Base del Conocimiento y estadísticas del grafo. No requiere servidor web ni navegador.
 - **Cliente LLM lee `.env` por defecto (`src/generation/local_llm.py`):** El constructor de `LocalLLMClient` ahora usa `get_settings()` como valores por defecto (`backend`, `base_url`, `model_name`, `timeout`, `max_retries`, `base_delay`), permitiendo instanciarlo sin argumentos y tomar la configuración del entorno.
 - **Dependencia añadida:** `textual>=0.86.0` en `requirements.txt`.
 
@@ -150,10 +211,10 @@ docker-compose --profile ui up --build
 **Fecha:** Octubre 2026
 
 ### 📋 Resumen de la Versión
-Se ha completado la **Fase 8A** del proyecto, implementando la **Interfaz Web de Usuario con Streamlit (`src/ui/app.py`)** para permitir a los operadores e ingenieros interactuar visualmente con el sistema Graph RAG del SGD, configurar parámetros de recuperación y backend LLM, ejecutar la indexación en tiempo real y consultar el grafo de conocimiento. Se han validado todas las dependencias vectoriales (`chromadb`, `sentence-transformers`) y establecido las pautas de permisos para entornos de producción.
+Se ha completado la **Fase 8A** del proyecto, implementando la **Interfaz Web de Usuario con Streamlit (`src/ui/app.py`)** para permitir a los operadores e ingenieros interactuar visualmente con el sistema Graph RAG para la Base del Conocimiento, configurar parámetros de recuperación y backend LLM, ejecutar la indexación en tiempo real y consultar el grafo de conocimiento. Se han validado todas las dependencias vectoriales (`chromadb`, `sentence-transformers`) y establecido las pautas de permisos para entornos de producción.
 
 ### ✨ Novedades y Componentes Implementados
-- **Interfaz Web Streamlit (`src/ui/app.py`):** Panel de control lateral con configuración de backend (Ollama / Llama.cpp), control de top-K y radio de grafo, botón de reindexación y visualización de estadísticas del grafo. Chat conversacional con despliegue de fuentes y referencias a ficheros originales del SGD.
+- **Interfaz Web Streamlit (`src/ui/app.py`):** Panel de control lateral con configuración de backend (Ollama / Llama.cpp), control de top-K y radio de grafo, botón de reindexación y visualización de estadísticas del grafo. Chat conversacional con despliegue de fuentes y referencias a ficheros originales de la Base del Conocimiento.
 - **Validación Vectorial Completa:** Integración probada con ChromaDB y embeddings locales SentenceTransformers (`all-MiniLM-L6-v2`).
 - **Nota de Producción (Permisos):** Recordatorio de configuración de permisos sobre `data/` para evitar bloqueos de base de datos en despliegues *on-premise*.
 
@@ -173,7 +234,7 @@ Se ha completado la **Fase 7** del proyecto, implementando la **Persistencia del
 
 ### ✨ Novedades y Componentes Implementados
 - **Persistencia de Grafo (`src/graph/manager.py`):** Guardado y carga automática del grafo NetworkX en formato JSON (`data/knowledge_graph.json`), evitando recomputar relaciones entre reinicios.
-- **Cliente de Chat Interactivo (`run_chat.py`):** Interfaz CLI conversacional para realizar consultas híbridas y visualizar respuestas y fuentes del SGD.
+- **Cliente de Chat Interactivo (`run_chat.py`):** Interfaz CLI conversacional para realizar consultas híbridas y visualizar respuestas y fuentes de la Base del Conocimiento.
 - **Contenerización Docker (`Dockerfile`, `docker-compose.yml`):** Configuración lista para producción *on-premise* con volúmenes persistentes para `data/`.
 - **Pruebas Unitarias Ampliadas (`tests/test_graph.py`):** Cobertura de tests para la persistencia del grafo.
 
@@ -220,7 +281,7 @@ Se ha completado la **Fase 6** del proyecto, implementando la **Capa de Servicio
 **Fecha:** Octubre 2026
 
 ### 📋 Resumen de la Versión
-Se ha completado la **Fase 5** del sistema, implementando el script de demostración de integración End-to-End (`run_demo.py`), validando la indexación real del SGD, la recuperación híbrida y la conectividad con el servidor LLM local (`llama.cpp` en `http://localhost:8080`) con timeout ampliado y configurable (por defecto 300 segundos).
+Se ha completado la **Fase 5** del sistema, implementando el script de demostración de integración End-to-End (`run_demo.py`), validando la indexación real de la Base del Conocimiento, la recuperación híbrida y la conectividad con el servidor LLM local (`llama.cpp` en `http://localhost:8080`) con timeout ampliado y configurable (por defecto 300 segundos).
 
 ### ✨ Novedades y Componentes Implementados
 - **Script E2E (`run_demo.py`):** Orquestador completo para pruebas de integración sobre la documentación real en `data/`.
@@ -287,7 +348,7 @@ Se ha completado la **Fase 3** del proyecto, implementando el chunking jerárqui
 ### ✨ Novedades y Componentes Implementados
 - **Chunker Jerárquico (`src/ingestion/chunker.py`):** Fragmentación inteligente de documentos Markdown respetando la jerarquía de títulos (`#`, `##`, `###`) y preservando el contexto y metadatos.
 - **Gestor Vectorial Local (`src/vectorstore/store.py`):** Integración con ChromaDB y SentenceTransformers (`all-MiniLM-L6-v2`) para generación y búsqueda de similitud semántica. Incluye manejo robusto de dependencias para ejecución ligera en entornos sin GPU.
-- **Pipeline de Indexación (`src/vectorstore/indexer.py`):** Orquestador que conecta Parser, Chunker, Gestor de Grafo y Base Vectorial para procesar automáticamente los ficheros del SGD.
+- **Pipeline de Indexación (`src/vectorstore/indexer.py`):** Orquestador que conecta Parser, Chunker, Gestor de Grafo y Base Vectorial para procesar automáticamente los ficheros de la Base del Conocimiento.
 - **Pruebas Unitarias y Comandos de Validación:** Cobertura de tests para fragmentación y búsqueda vectorial.
 
 ### 🧪 Comandos de Prueba Utilizados
@@ -316,7 +377,7 @@ Se ha completado la **Fase 3** del proyecto, implementando el chunking jerárqui
 **Fecha:** Octubre 2026
 
 ### 📋 Resumen de la Versión
-Se ha completado la **Fase 2** del proyecto, implementando el parser robusto de Markdown y el gestor de grafos de conocimiento basado en NetworkX. Se han incorporado pruebas unitarias completas y herramientas de validación sobre documentos reales del SGD.
+Se ha completado la **Fase 2** del proyecto, implementando el parser robusto de Markdown y el gestor de grafos de conocimiento basado en NetworkX. Se han incorporado pruebas unitarias completas y herramientas de validación sobre documentos reales de la Base del Conocimiento.
 
 ### ✨ Novedades y Componentes Implementados
 - **Parser de Markdown (`src/ingestion/parser.py`):** Lectura automatizada de ficheros `.md`, extracción de metadatos YAML frontmatter y extracción de enlaces cruzados estilo wiki (`[[enlace]]` / `[[enlace|alias]]`).
@@ -347,7 +408,7 @@ Se ha completado la **Fase 2** del proyecto, implementando el parser robusto de 
 **Fecha:** Octubre 2026
 
 ### 📋 Resumen de la Versión
-Esta versión inicial establece las bases conceptuales, arquitectónicas y de gobernanza para el desarrollo del sistema **Graph RAG para el Sistema de Gestión Documental (SGD)**. Define los principios rectores orientados a la privacidad y soberanía de datos (*on-premise*), así como la integración híbrida de grafos de conocimiento y recuperación vectorial.
+Esta versión inicial establece las bases conceptuales, arquitectónicas y de gobernanza para el desarrollo del sistema **Graph RAG para la Base del Conocimiento**. Define los principios rectores orientados a la privacidad y soberanía de datos (*on-premise*), así como la integración híbrida de grafos de conocimiento y recuperación vectorial.
 
 ### ✨ Novedades y Componentes Incluidos
 - **Directrices de Desarrollo (`AGENTS.md`):** Normas técnicas para la colaboración entre el Guía y el Agente de Programación, priorizando la simplicidad, eficiencia y preservación del contexto estructural de los documentos Markdown.
@@ -359,7 +420,7 @@ Esta versión inicial establece las bases conceptuales, arquitectónicas y de go
 - **Documentación de Entrada (`README.md`):** Guía general del proyecto, arquitectura visual en Mermaid, estructura del repositorio y **guía detallada de despliegue y pruebas** para entornos de desarrollo y producción *on-premise*.
 
 ### 🎯 Próximos Pasos (v0.2.0)
-- Desarrollo del script de ingesta en Python para lectura de archivos Markdown del SGD.
+- Desarrollo del script de ingesta en Python para lectura de archivos Markdown de la Base del Conocimiento.
 - Extracción automatizada de metadatos YAML frontmatter y enlaces cruzados tipo wiki (`[[enlace]]`).
 - Construcción inicial del grafo de relaciones utilizando NetworkX.
 
@@ -368,7 +429,7 @@ Esta versión inicial establece las bases conceptuales, arquitectónicas y de go
 ## 🚀 Roadmap / Mejoras Futuras (Post v0.8.0)
 
 ### Visualización Interactiva del Grafo de Conocimiento (UI)
-**Propuesta:** Añadir nueva tab "🕸️ Grafo SGD" en Streamlit para explorar nodos/edges visualmente.
+**Propuesta:** Añadir nueva tab "🕸️ Grafo Base del Conocimiento" en Streamlit para explorar nodos/edges visualmente.
 
 **Funcionalidades deseadas:**
 - **Vista grafo interactiva** (pyvis / networkx + streamlit-agraph / cytoscape.js):
@@ -386,4 +447,4 @@ Esta versión inicial establece las bases conceptuales, arquitectónicas y de go
 - `pyvis` (genera HTML interactivo, embebible via `st.components.v1.html`)
 - `networkx` + `matplotlib`/`plotly` para vistas estáticas rápidas
 
-**Valor:** Permite a gestores/documentalistas entender la topología documental, detectar docs huérfanos, clusters temáticos, y validar que los wiki links reflejan la estructura real del SGD.
+**Valor:** Permite a gestores/documentalistas entender la topología documental, detectar docs huérfanos, clusters temáticos, y validar que los wiki links reflejan la estructura real de la Base del Conocimiento.

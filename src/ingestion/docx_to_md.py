@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Conversor de documentos Word (.docx) a Markdown con frontmatter YAML para el SGD."""
+"""Conversor de documentos Word (.docx) a Markdown con frontmatter YAML para la Base del Conocimiento."""
 import sys
 from pathlib import Path
 from docx import Document
@@ -29,7 +29,7 @@ def docx_to_markdown(docx_path: str, md_path: str = None, frontmatter: dict = No
         "id": docx_path.stem.lower().replace(' ', '_'),
         "title": title,
         "categoria": "importado",
-        "autor": "Sistema SGD",
+        "autor": "Sistema Base del Conocimiento",
         "creado": datetime.now().strftime("%Y-%m-%d"),
         "tags": ["#importado", "#word"],
         "status": "activo",

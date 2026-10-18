@@ -122,3 +122,41 @@ class VectorStoreManager:
                 })
 
         return formatted_results
+
+    def keyword_search(self, keywords: List[str], top_k: int = 10) -> List[Dict[str, Any]]:
+        """Busca chunks cuyo contenido contenga cualquiera de las palabras clave (búsqueda por texto exacto)."""
+        if not self.collection:
+            raise RuntimeError("ChromaDB no está disponible.")
+
+        if not keywords:
+            return []
+
+        # Hacer búsqueda separada por cada palabra clave para evitar que ChromaDB
+        # truncá resultados con $or y pierda coincidencias específicas
+        all_results = {}
+        limit_per_kw = max(top_k * 3, 30)
+
+        for kw in keywords:
+            try:
+                results = self.collection.get(
+                    where_document={"$contains": kw},
+                    limit=limit_per_kw
+                )
+            except Exception:
+                continue
+
+            if results and results["ids"]:
+                for chunk_id, doc, meta in zip(results["ids"], results["documents"], results["metadatas"]):
+                    if chunk_id not in all_results:
+                        doc_lower = doc.lower()
+                        if kw.lower() in doc_lower:
+                            all_results[chunk_id] = {
+                                "chunk_id": chunk_id,
+                                "content": doc,
+                                "metadata": meta,
+                                "distance": 0.0
+                            }
+
+        # Ordenar y limitar a top_k
+        formatted_results = list(all_results.values())[:top_k]
+        return formatted_results

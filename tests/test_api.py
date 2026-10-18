@@ -8,9 +8,9 @@ client = TestClient(app)
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "service": "Graph RAG SGD API"}
+    assert response.json() == {"status": "healthy", "service": "Graph RAG Base del Conocimiento API"}
 
-@patch("src.api.main.SGDIndexer")
+@patch("src.api.main.KnowledgeBaseIndexer")
 def test_index_endpoint(mock_indexer_cls):
     mock_indexer = MagicMock()
     mock_indexer.run_indexing.return_value = 10

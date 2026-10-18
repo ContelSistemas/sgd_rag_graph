@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 class KnowledgeGraphManager:
-    """Gestor de Grafo de Conocimiento basado en NetworkX para el SGD."""
+    """Gestor de Grafo de Conocimiento basado en NetworkX para la Base del Conocimiento."""
 
     def __init__(self, persist_path: Optional[str] = None):
         self.graph = nx.DiGraph()

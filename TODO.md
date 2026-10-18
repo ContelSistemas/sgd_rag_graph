@@ -1,7 +1,7 @@
 # TODO.md
 
 ## Objetivo actual
-Sistema Graph RAG para SGD (v0.9.3) estable tras Sprint 1, Sprint 1.1, Sprint 1.2 y Sprint 1.3: expansión de grafo con contenido real de chunks, cliente LLM con reintentos exponenciales, configuración centralizada, modelo LLM ligero 1B, deduplicación de contextos por hash, limpieza de duplicados al re-indexar, e ingesta de documentos Word (.docx) convertidos a Markdown.
+Sistema Graph RAG para Base del Conocimiento (v0.9.5) estable tras Sprint 1, 1.1, 1.2, 1.3, Sprint 1.4 y Sprint 1.5: búsqueda por palabra clave para términos técnicos, modelo de embeddings actualizado a paraphrase-multilingual-mpnet-base-v2, default_top_k=20, chunker corregido, retriever relajado, prompt del LLM mejorado para modelo 3B, parámetros optimizados para 3B.
 
 ## Tareas pendientes (backlog - nuevas fuentes de documento)
 - ✅ **Word (.docx):** Implementado en Sprint 1.3 con `src/ingestion/docx_to_md.py` (`python-docx`).
@@ -14,13 +14,30 @@ Sistema Graph RAG para SGD (v0.9.3) estable tras Sprint 1, Sprint 1.1, Sprint 1.
 - Validar persistencia del grafo en `data/knowledge_graph.json` tras reindexación.
 - Comprobar acceso de escritura a `data/vectorstore/` para ChromaDB.
 - Documentar en `docs/` el uso de `PLAN.md`/`TODO.md` para seguimiento de sprints.
-- Probar LLM más ligero: Qwen2.5-3B-Instruct Q4_K_M (Qwen2.5-7B va muy lento en dev). Alternativa: Llama3.2-3B-Instruct.
+- ✅ **Probar LLM más grande:** Probado Llama3.2-3B-Instruct Q4_K_M en sprint 1.4. Mejora en construcción de respuestas pero requiere parámetros y prompt ajustados para extraer información del contexto.
 - Considerar visualización interactiva del grafo en Streamlit (pyvis / streamlit-agraph) — ver roadmap en `release.md`.
+
+## Tareas completadas (esta sesión - Sprint 1.4 v0.9.4)
+- Chunker corregido: encabezados `###` se agrupan con su sección padre `##` (`src/ingestion/chunker.py`)
+- Retriever relajado: eliminado filtro restrictivo por `source_path`; `MAX_CONTEXTS_PER_SOURCE=5`; usa `settings.default_top_k` (`src/retrieval/hybrid.py`)
+- Prompt del LLM mejorado para modelo 3B; post-procesamiento filtra bloques "Pregunta/Respuesta/Contexto"; secuencias `stop` para llama.cpp (`src/generation/local_llm.py`)
+- Parámetros optimizados para 3B: `temperature=0.3`, `n_predict=384`, `ctx_size=4096`, `default_top_k=10` (`src/config/settings.py`)
+- Chat CLI con `top_k=50` para más candidatos de ChromaDB (`run_chat.py`)
+- Documentación: `release.md` (v0.9.4), `TODO.md` (este archivo)
+
+## Tareas completadas (esta sesión - Sprint 1.5 v0.9.5)
+- Búsqueda por palabra clave (`keyword_search`) en `src/vectorstore/store.py`: usa `where_document={"$contains": kw}` de ChromaDB para encontrar chunks con términos técnicos exactos (ej. `XGE1/0/25`)
+- Integración de `keyword_search` en `HybridRetriever.retrieve()`: ejecuta keyword antes de búsqueda vectorial y prioriza hits de keyword; extrae palabras clave automáticamente vía regex (`src/retrieval/hybrid.py`)
+- Modelo de embeddings actualizado a `paraphrase-multilingual-mpnet-base-v2` (768 dims) en `src/config/settings.py`, `.env` y `.env.example`
+- `default_top_k` incrementado de 4 a 20 en `src/config/settings.py` y `.env`
+- `MAX_CONTEXTS_PER_SOURCE` incrementado de 5 a 10 en `src/retrieval/hybrid.py`
+- Validación de recuperación: consulta "¿Qué pasó con el puerto XGE1/0/25 del switch en PQS?" ahora recupera el chunk relevante y el LLM responde correctamente
+- Documentación: `release.md` (v0.9.5), `TODO.md`, `README.md`, `AGENTS.md`
 
 ## Tareas completadas (esta sesión - Sprint 1.3 v0.9.3)
 - Conversor Word → Markdown (`src/ingestion/docx_to_md.py`): extrae texto de .docx con `python-docx`, genera frontmatter YAML automático, preserva encabezados, negritas y enlaces wiki `[[...]]`.
 - Pipeline de ingesta Word/PDF integrado: los .md convertidos entran al pipeline estándar (Parser → Chunker → Grafo → VectorStore).
-- Frontmatter sintético para documentos importados: `id`, `title`, `categoria: importado`, `autor: Sistema SGD`, `creado`, `tags: ["#importado", "#word"]`, `Link to: null`.
+- Frontmatter sintético para documentos importados: `id`, `title`, `categoria: importado`, `autor: Sistema Base del Conocimiento`, `creado`, `tags: ["#importado", "#word"]`, `Link to: null`.
 - Prueba real con `data/contrato msp.docx` → `data/contrato msp.md` → indexado (89 chunks totales, nodo `contrato_msp` en el grafo).
 - Pruebas unitarias: `11 passed` (`PYTHONPATH=. pytest tests/ -q`)
 - Documentación: `release.md` (v0.9.3), `README.md` (sprint 1.3 + sección ingesta Word/PDF), `TODO.md` (este archivo)
@@ -45,7 +62,7 @@ Sistema Graph RAG para SGD (v0.9.3) estable tras Sprint 1, Sprint 1.1, Sprint 1.
 - Crear `.env.example` como plantilla de variables de entorno
 - `.env` ya estaba en `.gitignore` (línea 6)
 - Modificar `src/generation/local_llm.py` para leer valores por defecto de `.env` vía `get_settings()`
-- Crear `src/ui/tui.py` — nueva TUI con Textual que reusa `LocalLLMClient`, `HybridRetriever`, `KnowledgeGraphManager`, `VectorStoreManager`, `SGDIndexer`
+- Crear `src/ui/tui.py` — nueva TUI con Textual que reusa `LocalLLMClient`, `HybridRetriever`, `KnowledgeGraphManager`, `VectorStoreManager`, `KnowledgeBaseIndexer`
 - Agregar `textual>=0.86.0` a `requirements.txt`
 - Actualizar `README.md`: sección de configuración `.env` y sección de TUI Textual
 - Actualizar `release.md`: nueva versión v0.9.1-alpha con todas las mejoras
@@ -82,15 +99,18 @@ Sistema Graph RAG para SGD (v0.9.3) estable tras Sprint 1, Sprint 1.1, Sprint 1.
 
 ## Siguiente paso que debe ejecutar
 ```bash
-# 1. Lanzar servidor LLM ligero (1B, CPU)
-llama-server -hf ggml-org/gemma-3-1b-it-Q4_K_M-GGUF -c 2048 --port 8080
+# 1. Lanzar servidor LLM (recomendado 3B para sprint 1.4)
+llama-server -hf bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M -c 4096 --port 8080
 
-# 2. Reindexar documentos (limpia duplicados previos)
+# 2. Limpiar índice anterior (requerido por cambio en el chunker)
+rm -rf data/vectorstore data/knowledge_graph.json
+
+# 3. Reindexar documentos (limpia duplicados previos)
 POST /index   # vía API, Streamlit o python3 run_demo.py
 
-# 3. Ejecutar pruebas
+# 4. Ejecutar pruebas
 PYTHONPATH=. pytest tests/ -v
 
-# 4. Chat CLI
+# 5. Chat CLI
 python3 run_chat.py llamacpp http://localhost:8080
 ```

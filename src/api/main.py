@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
 from src.config import get_settings
-from src.vectorstore.indexer import SGDIndexer
+from src.vectorstore.indexer import KnowledgeBaseIndexer
 from src.retrieval.hybrid import HybridRetriever
 from src.vectorstore.store import VectorStoreManager
 from src.graph.manager import KnowledgeGraphManager
@@ -12,8 +12,8 @@ from src.generation.local_llm import LocalLLMClient
 settings = get_settings()
 
 app = FastAPI(
-    title="Graph RAG para SGD - API REST",
-    description="API on-premise para recuperación híbrida y generación local en el Sistema de Gestión Documental",
+    title="Graph RAG para Base del Conocimiento - API REST",
+    description="API on-premise para recuperación híbrida y generación local en la Base del Conocimiento",
     version="0.6.0"
 )
 
@@ -42,19 +42,19 @@ class IndexResponse(BaseModel):
 @app.get("/")
 def root():
     return {
-        "message": "Bienvenido a la API REST de Graph RAG para SGD",
+        "message": "Bienvenido a la API REST de Graph RAG para Base del Conocimiento",
         "docs": "/docs",
         "health": "/health"
     }
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "Graph RAG SGD API"}
+    return {"status": "healthy", "service": "Graph RAG Base del Conocimiento API"}
 
 @app.post("/index", response_model=IndexResponse)
 def trigger_indexing():
     try:
-        indexer = SGDIndexer(data_dir=settings.data_dir, vector_dir=settings.vector_store_dir)
+        indexer = KnowledgeBaseIndexer(data_dir=settings.data_dir, vector_dir=settings.vector_store_dir)
         total_chunks = indexer.run_indexing()
         global graph_manager, retriever
         graph_manager.load_from_json(settings.graph_persist_path)
