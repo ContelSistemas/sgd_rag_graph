@@ -51,6 +51,7 @@ docker-compose --profile ui up --build
 | Indexer | `src/vectorstore/indexer.py` | Orchestrates parser → chunker → graph → vector store |
 | Hybrid Retriever | `src/retrieval/hybrid.py` | Vector search + graph neighbor expansion |
 | Local LLM Client | `src/generation/local_llm.py` | Multi-backend: Ollama (`/api/generate`) + llama.cpp (`/completion`) |
+| LLM Extractor | `src/graph/extractor.py` | Optional entity/relation extraction with JSON-forced LLM output |
 | REST API | `src/api/main.py` | FastAPI: `/health`, `/index`, `/query` |
 | Streamlit UI | `src/ui/app.py` | Web interface with config sidebar |
 
@@ -70,11 +71,33 @@ data/
 | `LLM_TIMEOUT` | `300` | Request timeout in seconds |
 | `EMBEDDING_MODEL` | `paraphrase-multilingual-mpnet-base-v2` | Embedding model for vector store |
 | `DEFAULT_TOP_K` | `20` | Default number of retrieved chunks |
+| `EXTRACTION_ENABLED` | `false` | Enable LLM-based entity/relation extraction during indexing |
+| `EXTRACTION_MODEL` | `null` | LLM model for extraction (uses `LLM_MODEL_NAME` if null) |
+| `EXTRACTION_TEMPERATURE` | `0.1` | Temperature for extraction LLM |
+| `EXTRACTION_MAX_TOKENS` | `512` | Max tokens for extraction LLM |
+| `ENTITY_SIMILARITY_THRESHOLD` | `0.9` | Threshold to merge duplicate entities |
 
 ## LLM Backends
-- **llama.cpp**: `llama-server -hf bartowski/Qwen2.5-3B-Instruct-GGUF:Q4_K_S -c 4096 --port 8080` (recomendado para v0.9.5)
+- **llama.cpp**: `llama-server -hf bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M -c 4096 --port 8080 --alias llama-3.2-3b` (recomendado para v0.9.5+)
 - **Ollama**: `ollama serve && ollama pull qwen2.5:3b`
 - Configure in code: `LocalLLMClient(backend="llamacpp", base_url="http://localhost:8080", timeout=300)`
+- Current alias in `.env`: `LLM_MODEL_NAME=llama-3.2-3b`
+
+## Opción A vs Opción C (Extracción de Entidades)
+
+El proyecto soporta dos modos de despliegue:
+
+**Opción A — Base pipeline sin LLM (por defecto):**
+- `extraction_enabled = false`
+- El grafo contiene solo nodos de documento y enlaces wiki_link
+- Funciona sin servidor LLM durante el indexado
+- Ideal para desarrollo y hardware limitado
+
+**Opción C — Extracción con LLM (para producción en hardware potente):**
+- `extraction_enabled = true`
+- El extractor (`src/graph/extractor.py`) enriquece el grafo con entidades y relaciones extraídas por LLM
+- Requiere servidor LLM potente (Qwen3-4B/8B recomendado con GPU)
+- Más detalles en `TODO.md`
 
 ## Development Notes
 - Python 3.10+, dependencies in `requirements.txt`
@@ -102,3 +125,9 @@ data/
 - **HybridRetriever** integrates `keyword_search` before vector search, prioritizing keyword hits; auto-extracts technical keywords via regex
 - **Embedding model** changed to `paraphrase-multilingual-mpnet-base-v2` (768 dims) — requires reindexing (`rm -rf data/vectorstore`)
 - **default_top_k** increased to 20; **MAX_CONTEXTS_PER_SOURCE** increased to 10
+
+## Sprint 1.6 Improvements (v0.9.6 — In Progress)
+- **LLM Extractor** (`src/graph/extractor.py`): Optional entity/relation extraction with JSON-forced output, entity normalization/deduplication, frontmatter-to-graph integration
+- **Opción A / Opción C**: Base pipeline without LLM extraction (default) vs optional LLM enrichment for production
+- **Centralized extraction config**: `extraction_enabled`, `extraction_model`, `extraction_temperature`, `extraction_max_tokens`, `entity_similarity_threshold` in `src/config/settings.py`
+- **Indexer integration**: `KnowledgeBaseIndexer` instantiates `LLMExtractor` only when `extraction_enabled = true`

@@ -237,15 +237,82 @@ python3 run_chat.py llamacpp http://localhost:8080
 ### Parámetros por defecto optimizados (`src/config/settings.py`)
 | Parámetro | Valor | Efecto |
 |-----------|-------|--------|
-| `llm_model_name` | `qwen2.5-3b-instruct` | Modelo 3B para respuestas precisas en CPU |
+| `llm_model_name` | `llama-3.2-3b` | Modelo 3B para respuestas precisas en CPU (alias en `llama-server`) |
 | `llm_n_predict` | 512 | Máximo de tokens generados por respuesta |
 | `llm_temperature` | 0.3 | Menor variación, respuestas más deterministas |
 | `llm_ctx_size` | 4096 | Ventana de contexto ampliada |
 | `default_top_k` | 20 | Más fragmentos recuperados antes del filtrado |
 | `MAX_CONTEXTS_PER_SOURCE` (retriever) | 10 | Tope de contextos por fuente de documento |
 | `EMBEDDING_MODEL` | `paraphrase-multilingual-mpnet-base-v2` | Embeddings 768 dims, mejor para español y términos técnicos |
+| `extraction_enabled` | `false` | Extracción de entidades/relaciones por LLM durante el indexado (Opción C) |
+| `extraction_model` | `null` | Modelo LLM para extracción (usa `llm_model_name` si es null) |
+| `entity_similarity_threshold` | `0.9` | Umbral de similitud para fusionar entidades duplicadas |
 
 ### Deduplicación de contextos
+Cada consulta elimina automáticamente fragmentos repetidos (por `chunk_id` y por hash de contenido) tanto de la búsqueda vectorial como de la expansión de grafo, evitando respuestas "corta-pega" y fuentes duplicadas.
+
+---
+
+## 🧩 Extractor de Entidades y Relaciones (Opcional)
+
+El proyecto incluye un módulo de extracción opcional (`src/graph/extractor.py`) que permite enriquecer el grafo de conocimiento con entidades y relaciones extraídas mediante LLM durante el indexado.
+
+### Opción A — Base pipeline sin LLM (recomendado para desarrollo)
+
+Esta es la configuración por defecto (`extraction_enabled = false`). El pipeline funciona así:
+
+```
+Markdown Parser → Chunker → Vector Store (ChromaDB) + Knowledge Graph (nodos de documento + enlaces wiki_link)
+```
+
+Ventajas:
+- ✅ Rápido (no requiere servidor LLM durante el indexado)
+- ✅ Funciona en hardware limitado (CPU solo)
+- ✅ Los tests unitarios pasan sin servicios externos
+
+Desventajas:
+- ❌ El grafo solo contiene nodos de documento y enlaces wiki, no entidades técnicas extraídas (IPs, VLANs, equipos, etc.)
+
+### Opción C — Extracción con LLM (recomendado para producción en hardware potente)
+
+Cuando dispongas de hardware con GPU o servidor potente, activa `extraction_enabled = true` en `.env`:
+
+```env
+EXTRACTION_ENABLED=true
+EXTRACTION_MODEL=qwen3-4b-instruct-2507
+EXTRACTION_TEMPERATURE=0.1
+EXTRACTION_MAX_TOKENS=512
+ENTITY_SIMILARITY_THRESHOLD=0.9
+```
+
+El extractor:
+- Usa salida JSON forzada (`format: "json"`) para reducir fallos de formato
+- Extrae entidades (equipos, IPs, VLANs, clientes, servicios) y relaciones dirigidas
+- Normaliza nombres para evitar duplicados ("Juan Pérez" ≡ "J. Pérez")
+- Vincula cada entidad y relación al `chunk_id` de origen para trazabilidad
+- Opcionalmente crea nodos desde el frontmatter (cliente, sistema, categoría, criticidad)
+
+**Pasos para activar Opción C:**
+
+```bash
+# 1. Levantar servidor LLM potente
+llama-server -hf bartowski/Qwen3-4B-Instruct-2507-Q4_K_M -c 4096 --port 8080
+
+# 2. Activar extracción en .env
+EXTRACTION_ENABLED=true
+
+# 3. Reindexar
+rm -rf data/vectorstore data/knowledge_graph.json
+PYTHONPATH=. python3 -c "
+from src.vectorstore.indexer import KnowledgeBaseIndexer
+idx = KnowledgeBaseIndexer()
+print(idx.run_indexing())
+"
+```
+
+Más detalles en `TODO.md`.
+
+## 📄 Ingesta de Documentos Word y PDF
 Cada consulta elimina automáticamente fragmentos repetidos (por `chunk_id` y por hash de contenido) tanto de la búsqueda vectorial como de la expansión de grafo, evitando respuestas "corta-pega" y fuentes duplicadas.
 
 ---
@@ -294,3 +361,4 @@ Documentado en el backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesse
 10. **Sprint 1.1 (v0.9.1):** TUI Textual, Configuración `.env` y Soporte Multi-Interfaz. *(Completado)*
 11. **Sprint 1.2 (v0.9.2):** Modelo Ligero 1B, Deduplicación de Contextos y Optimización para Hardware Limitado. *(Completado)*
 12. **Sprint 1.3 (v0.9.3):** Ingesta de Documentos Word (.docx) y PDF. *(Completado)*
+13. **Sprint 1.6 (v0.9.6):** Extractor de Entidades y Relaciones con LLM (Opción A por defecto, Opción C opcional para producción). *(En Progreso)*

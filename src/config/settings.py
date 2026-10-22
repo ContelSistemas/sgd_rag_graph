@@ -1,4 +1,6 @@
 from functools import lru_cache
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +30,13 @@ class Settings(BaseSettings):
 
     # Graph
     graph_persist_path: str = "data/knowledge_graph.json"
+
+    # Graph extraction (LLM-based entity/relation extraction)
+    extraction_enabled: bool = False
+    extraction_model: Optional[str] = None
+    extraction_temperature: float = 0.1
+    extraction_max_tokens: int = 512
+    entity_similarity_threshold: float = 0.9
 
     # Data
     data_dir: str = "data"

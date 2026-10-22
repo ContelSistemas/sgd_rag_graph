@@ -1,5 +1,59 @@
 # Notas de Versión - Graph RAG para Base del Conocimiento
 
+## v0.9.6-alpha (Sprint 1.6: Extractor de Entidades y Relaciones con LLM)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se agrega un **módulo opcional de extracción de entidades y relaciones** (`src/graph/extractor.py`) que permite enriquecer el grafo de conocimiento con información técnica extraída mediante LLM durante el indexado. Se introduces dos modos de despliegue: **Opción A** (base pipeline sin LLM, por defecto) y **Opción C** (extracción con LLM para producción en hardware potente). Se añade configuración centralizada para la extracción en `src/config/settings.py`.
+
+### ✨ Novedades y Componentes Implementados
+- **LLM Extractor (`src/graph/extractor.py`):** Nuevo módulo con esquemas Pydantic (`Entity`, `Relation`, `ExtractionResult`), prompt en castellano optimizado para Qwen3, llamada JSON-forzada a `llama-server`/`ollama`, normalización de nombres de entidades (evita duplicados tipo "Juan Pérez" ≡ "J. Pérez"), y vinculación de cada entidad/relación al `chunk_id` de origen.
+- **Integración en Indexer (`src/vectorstore/indexer.py`):** `KnowledgeBaseIndexer` instancia `LLMExtractor` solo cuando `extraction_enabled = true` y llama a `populate_graph_from_extraction` por chunk después de indexar en vector store.
+- **Configuración centralizada (`src/config/settings.py`):** Nuevos campos `extraction_enabled` (default: `false`), `extraction_model`, `extraction_temperature` (0.1), `extraction_max_tokens` (512), `entity_similarity_threshold` (0.9).
+- **Alias de modelo actualizado:** `LLM_MODEL_NAME` cambia de `qwen2.5-3b-instruct` a `llama-3.2-3b` en `.env` para coincidir con el alias de `llama-server`.
+- **Documentación:** Sección nueva en `README.md` (Extractor de Entidades y Relaciones), sección "Opción A vs Opción C" en `AGENTS.md`, y `TODO.md` con pasos para activar Opción C en hardware potente.
+
+### 🔧 Flujo de Uso (Opción A — Base pipeline, por defecto)
+```bash
+# 1. Ejecutar pruebas unitarias
+PYTHONPATH=. pytest tests/ -v
+
+# 2. Indexar documentos (sin extracción LLM)
+rm -rf data/vectorstore data/knowledge_graph.json
+PYTHONPATH=. python3 -c "
+from src.vectorstore.indexer import KnowledgeBaseIndexer
+idx = KnowledgeBaseIndexer()
+print(f'Chunks indexados: {idx.run_indexing()}')
+"
+
+# 3. Consultar con LLM local (requiere servidor en puerto 8080)
+python3 run_chat.py llamacpp http://localhost:8080
+```
+
+### 🔧 Flujo de Uso (Opción C — Extracción con LLM, para producción en hardware potente)
+```bash
+# 1. Levantar servidor LLM potente
+llama-server -hf bartowski/Qwen3-4B-Instruct-2507-Q4_K_M -c 4096 --port 8080 --host 0.0.0.0 -t 8 --mmap
+
+# 2. Activar extracción en .env
+EXTRACTION_ENABLED=true
+
+# 3. Reindexar con extracción LLM
+rm -rf data/vectorstore data/knowledge_graph.json
+PYTHONPATH=. python3 -c "
+from src.vectorstore.indexer import KnowledgeBaseIndexer
+idx = KnowledgeBaseIndexer()
+print(f'Chunks indexados: {idx.run_indexing()}')
+"
+
+# 4. Verificar entidades extraídas en data/knowledge_graph.json
+```
+
+### ⚠️ Nota Importante
+La extracción LLM (Opción C) es opcional y está desactivada por defecto (`extraction_enabled = false`). Para activarla se requiere hardware potente (GPU recomendada) y un servidor LLM separado. En hardware limitado (CPU solo), cada chunk puede tardar varios minutos en procesarse.
+
+---
+
 ## v0.9.5-alpha (Sprint 1.5: Búsqueda por Palabra Clave para Términos Técnicos)
 **Fecha:** Octubre 2026
 

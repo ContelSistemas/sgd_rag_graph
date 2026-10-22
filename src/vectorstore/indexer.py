@@ -4,6 +4,7 @@ from src.config import get_settings
 from src.ingestion.parser import MarkdownParser
 from src.ingestion.chunker import HierarchicalMarkdownChunker
 from src.graph.manager import KnowledgeGraphManager
+from src.graph.extractor import LLMExtractor, populate_graph_from_extraction
 from src.vectorstore.store import VectorStoreManager
 
 class KnowledgeBaseIndexer:
@@ -16,6 +17,14 @@ class KnowledgeBaseIndexer:
         self.chunker = HierarchicalMarkdownChunker()
         self.graph_manager = KnowledgeGraphManager(persist_path=settings.graph_persist_path)
         self.vector_store = VectorStoreManager(persist_directory=vector_dir or settings.vector_store_dir)
+
+        self.extractor = None
+        if settings.extraction_enabled:
+            try:
+                self.extractor = LLMExtractor()
+            except Exception as e:
+                print(f"Aviso: no se pudo inicializar el extractor LLM: {e}")
+                self.extractor = None
 
     def run_indexing(self) -> int:
         if not self.data_dir.exists():
@@ -45,6 +54,22 @@ class KnowledgeBaseIndexer:
                     self.vector_store.delete_chunks_by_source(str(file_path))
                     self.vector_store.add_chunks(chunks)
                     total_chunks += len(chunks)
+
+                    # Extracción de entidades y relaciones por chunk (solo si el extractor está disponible)
+                    if self.extractor:
+                        for chunk in chunks:
+                            try:
+                                populate_graph_from_extraction(
+                                    kg_manager=self.graph_manager,
+                                    extractor=self.extractor,
+                                    text=chunk["content"],
+                                    chunk_id=chunk["chunk_id"],
+                                    source_path=str(file_path),
+                                    frontmatter=frontmatter,
+                                    add_frontmatter_nodes=False,  # evita duplicados con lo que ya hace el indexer
+                                )
+                            except Exception as e:
+                                print(f"Aviso: extracción falló para chunk {chunk['chunk_id']}: {e}")
 
             except Exception as e:
                 print(f"Error indexando {file_path}: {e}")
