@@ -75,3 +75,9 @@ class KnowledgeBaseIndexer:
                 print(f"Error indexando {file_path}: {e}")
 
         return total_chunks
+
+
+if __name__ == "__main__":
+    indexer = KnowledgeBaseIndexer()
+    total = indexer.run_indexing()
+    print(f"Total chunks indexados: {total}")

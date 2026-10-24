@@ -58,10 +58,30 @@ docker-compose --profile ui up --build
 ## Data Layout
 ```
 data/
-├── *.md                    # Source Knowledge Base documents
+├── clientes/               # Una carpeta por cliente (ej. parque_santiago/, hotel_guayarmina/)
+│   ├── <cliente>/          # Un cliente = un directorio con sus .md
+│   │   ├── <cliente>.md    # Índice central del cliente
+│   │   └── <cliente>_<sistema>.md  # Subsistemas (iptv, xgspon, switches, voip, tv, wifi)
 ├── vectorstore/            # ChromaDB persistence
 └── knowledge_graph.json    # NetworkX graph export
 ```
+
+## Crear Nuevos Clientes (`scripts/crear_cliente.py`)
+
+Para añadir un cliente sin romper lo existente:
+
+```bash
+# Sistemas por defecto (iptv, xgspon, switches, voip, tv, wifi)
+PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina"
+
+# Sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina" iptv switches wifi
+
+# Luego indexar
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+Cada cliente obtiene `id` único en el frontmatter, enlaces wiki bidireccionales entre el índice central y sus subsistemas, y comentarios para rellenar el conocimiento.
 
 ## Environment Variables (API)
 | Variable | Default | Description |

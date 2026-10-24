@@ -111,11 +111,13 @@ rm -rf data/vectorstore
 PYTHONPATH=. pytest tests/ -v
 
 # Indexado base (sin LLM, funciona ahora)
-PYTHONPATH=. python3 -c "
-from src.vectorstore.indexer import KnowledgeBaseIndexer
-idx = KnowledgeBaseIndexer()
-print(idx.run_indexing())
-"
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+
+# Crear un nuevo cliente (directorio, MDs y frontmatter automáticos)
+PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente"
+
+# Crear cliente con sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente" iptv switches wifi
 
 # Servidor FastAPI
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --ws none
@@ -123,3 +125,28 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --ws none
 # Streamlit UI
 streamlit run src/ui/app.py
 ```
+
+---
+
+## Crear Nuevos Clientes (`scripts/crear_cliente.py`)
+
+El script permite añadir clientes a la Base del Conocimiento sin romper lo existente:
+
+```bash
+# Sistemas por defecto: iptv, xgspon, switches, voip, tv, wifi
+PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina"
+
+# Sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina" iptv switches wifi
+
+# Con fecha personalizada
+PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina" --fecha 2026-10-24
+```
+
+Después de crear, siempre indexar:
+
+```bash
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+Cada cliente se crea en `data/clientes/<slug>/` con un índice central y un archivo por subsistema, todos con frontmatter YAML y enlaces wiki bidireccionales.

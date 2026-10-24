@@ -1,5 +1,38 @@
 # Notas de Versión - Graph RAG para Base del Conocimiento
 
+## v0.9.6-beta (Herramienta de Creación de Clientes)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se agrega el script `scripts/crear_cliente.py` para crear nuevos clientes en la Base del Conocimiento de forma automatizada, sin romper los datos existentes. También se corrige `src/vectorstore/indexer.py` para ser ejecutable directamente como módulo (`python3 -m src.vectorstore.indexer`).
+
+### ✨ Novedades y Componentes Implementados
+- **Script de creación de clientes (`scripts/crear_cliente.py`):** Crea automáticamente el directorio bajo `data/clientes/<slug>/`, el archivo índice central (`<slug>.md`) y un archivo por subsistema (`<slug>_<sistema>.md`). Cada archivo incluye frontmatter YAML con `id` único, enlaces wiki bidireccionales y comentarios para rellenar el conocimiento. Sistemas por defecto: `iptv`, `xgspon`, `switches`, `voip`, `tv`, `wifi`.
+- **Indexer ejecutable (`src/vectorstore/indexer.py`):** Agregado bloque `if __name__ == "__main__"` para permitir `PYTHONPATH=. python3 -m src.vectorstore.indexer` directamente, sin necesidad de comandos `python3 -c`.
+- **5 nuevos clientes de ejemplo:** `hotel_guayarmina`, `hotel_inspire`, `hotel_villa_cortes`, `hotel_corales_villa`, `hotel_corales_resort`, cada uno con los 6 sistemas por defecto.
+
+### 🔧 Flujo de Uso
+```bash
+# 1. Crear un nuevo cliente
+PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina"
+
+# 2. Indexar los documentos (incluye los nuevos automáticamente)
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+
+# 3. Verificar chunks creados
+PYTHONPATH=. python3 -c "
+import chromadb
+client = chromadb.PersistentClient(path='data/vectorstore')
+collection = client.get_collection(name='sgd_documents')
+print(collection.count())
+"
+```
+
+### ⚠️ Nota Importante
+El script solo crea archivos Markdown con frontmatter y enlaces wiki. No indexa en ChromaDB ni en el grafo; debes ejecutar el indexador después. Los clientes existentes (ej. Parque Santiago) no se ven afectados.
+
+---
+
 ## v0.9.6-alpha (Sprint 1.6: Extractor de Entidades y Relaciones con LLM)
 **Fecha:** Octubre 2026
 

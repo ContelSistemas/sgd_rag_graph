@@ -347,6 +347,55 @@ Documentado en el backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesse
 
 ---
 
+## 🆕 Crear Nuevos Clientes (`scripts/crear_cliente.py`)
+
+Para añadir un nuevo cliente a la Base del Conocimiento sin romper lo existente, usa el script `scripts/crear_cliente.py`. Crea automáticamente el directorio, los archivos Markdown con frontmatter YAML y los enlaces wiki bidireccionales.
+
+### Uso
+
+```bash
+# Con los sistemas por defecto (iptv, xgspon, switches, voip, tv, wifi)
+PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente"
+
+# Con sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente" iptv switches wifi
+
+# Con fecha personalizada
+PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente" --fecha 2026-10-24
+```
+
+### Qué crea
+
+Para un cliente `"Hotel Guayarmina"` con sistemas `iptv xgspon switches voip tv wifi`:
+
+```
+data/clientes/hotel_guayarmina/
+├── hotel_guayarmina.md          # Índice central (enlaza a todos los subsistemas)
+├── hotel_guayarmina_iptv.md     # Subsistema IPTV
+├── hotel_guayarmina_xgspon.md   # Subsistema XGS-PON
+├── hotel_guayarmina_switches.md # Subsistema Switches
+├── hotel_guayarmina_voip.md     # Subsistema VoIP
+├── hotel_guayarmina_tv.md       # Subsistema TV
+└── hotel_guayarmina_wifi.md     # Subsistema WiFi
+```
+
+Cada archivo incluye:
+- **Frontmatter YAML** con `id` único, `cliente`, `sistema`, `categoria`, `criticidad`, `autor`, `tags`, `link_to` y `fecha_actualizacion`.
+- **Enlaces wiki bidireccionales**: el índice central enlaza a todos los subsistemas (`[[hotel_guayarmina_iptv]]`, etc.) y cada subsistema enlaza de vuelta al central (`[[hotel_guayarmina]]`).
+- Comentarios `<!-- Rellena aquí ... -->` donde completas el conocimiento real.
+
+### Después de crear clientes
+
+Siempre ejecuta el indexador para generar los chunks en ChromaDB y el grafo:
+
+```bash
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+El indexador es idempotente por archivo: solo reemplaza los chunks del documento editado, sin tocar los clientes existentes.
+
+---
+
 ## 🚀 Hoja de Ruta
 
 1. **Fase 1:** Diseño arquitectónico, directrices y estructuración documental. *(Completado)*
