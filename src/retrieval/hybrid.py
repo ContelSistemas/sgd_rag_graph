@@ -111,21 +111,40 @@ class HybridRetriever:
 
     @staticmethod
     def _extract_keywords(query: str) -> List[str]:
-        """Extrae palabras clave técnicas de la consulta para búsqueda por texto exacto."""
+        """Extrae palabras clave técnicas de la consulta para búsqueda por texto exacto.
+
+        Los identificadores técnicos (con guiones, números o patrones mayúsculas)
+        se priorizan al principio para que no queden desplazados por palabras genéricas
+        al limitar el número de resultados.
+        """
         import re
-        # Patrones técnicos: IPs, nombres de puertos (XGE1/0/25), VLANs, alfanuméricos con símbolos
-        keywords = set()
 
-        # Buscar patrones como XGE1/0/25, VLAN184, 172.217.114.4, etc.
-        tech_patterns = re.findall(r'\b[A-Z]{2,}[A-Z0-9_/.-]*\b', query)
-        keywords.update(tech_patterns)
+        # Patrón para identificadores técnicos: NET-IPTV-0041, XGE1/0/25, VLAN184, etc.
+        tech_pattern = re.compile(r'\b[A-Z]{2,}[A-Z0-9_/.-]*\b')
 
-        # Buscar palabras de 4+ caracteres que no sean stopwords comunes en español
+        tech_keywords: List[str] = []
+        generic_keywords: List[str] = []
+
+        # Identificadores técnicos primero (prioridad alta)
+        for m in tech_pattern.finditer(query):
+            tech_keywords.append(m.group(0))
+
+        # Palabras comunes de 4+ caracteres que no sean stopwords (prioridad baja)
         stopwords = {'que', 'cual', 'cuales', 'como', 'donde', 'cuando', 'porque', 'para',
                      'con', 'por', 'del', 'de', 'la', 'las', 'los', 'el', 'un', 'una', 'y',
                      'o', 'a', 'en', 'se', 'ha', 'han', 'ha', 'fue', 'fueron', 'está', 'están',
                      'qué', 'cuál', 'cuáles', 'cómo', 'dónde', 'cuándo', 'por qué'}
         words = re.findall(r'\b[a-záéíóúñ]{4,}\b', query.lower())
-        keywords.update(w for w in words if w not in stopwords)
+        for w in words:
+            if w not in stopwords:
+                generic_keywords.append(w)
 
-        return list(keywords)
+        # Combinar: técnicos primero, genéricos después, sin duplicados
+        seen: set = set()
+        combined: List[str] = []
+        for kw in tech_keywords + generic_keywords:
+            if kw not in seen:
+                seen.add(kw)
+                combined.append(kw)
+
+        return combined
