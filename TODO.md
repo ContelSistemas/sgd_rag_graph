@@ -150,3 +150,18 @@ PYTHONPATH=. python3 -m src.vectorstore.indexer
 ```
 
 Cada cliente se crea en `data/clientes/<slug>/` con un índice central y un archivo por subsistema, todos con frontmatter YAML y enlaces wiki bidireccionales.
+
+---
+
+## Retriever: Filtrado por Cliente (v0.9.6-gamma)
+
+El retriever detecta automáticamente el cliente mencionado en la consulta y prioriza sus chunks:
+
+```bash
+# Consulta sobre cliente específico
+PYTHONPATH=. python3 run_chat.py llamacpp http://localhost:8080
+# > busca el caso NET-IPTV-0041 en villa cortes
+# Respuesta basada en [Hotel Villa Cortes - Muro de Conocimiento]
+```
+
+Para que funcione, el nombre en la consulta debe coincidir con parte del slug del cliente (ej. "villa cortes" detecta `hotel_villa_cortes`). Los chunks placeholder (`<!-- Rellena aquí ... -->`) se filtran automáticamente para no ocupar espacio en el contexto.

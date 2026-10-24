@@ -134,6 +134,9 @@ El proyecto soporta dos modos de despliegue:
 - Docker uses `host.docker.internal` for LLM connectivity from container
 - `docker-compose.override.yml` mounts source for hot-reload (dev only)
 
+## Retriever: Filtrado por Cliente
+Cuando una consulta menciona un cliente específico (ej. "villa cortes", "parque santiago"), el retriever detecta automáticamente el cliente y prioriza sus chunks, evitando que el LLM confunda información de diferentes clientes. Para que funcione, el nombre en la consulta debe coincidir con parte del slug del cliente (ej. "villa cortes" detecta `hotel_villa_cortes`).
+
 ## Sprint 1 Improvements (v0.9.0)
 - **Graph expansion** now retrieves actual chunk content from neighbors (not just metadata)
 - **LLM client** has exponential backoff retry (`max_retries=3`, `base_delay=1s`)

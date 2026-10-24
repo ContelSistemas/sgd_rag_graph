@@ -1,5 +1,33 @@
 # Notas de Versión - Graph RAG para Base del Conocimiento
 
+## v0.9.6-gamma (Corrección de Recuperación por Cliente y Filtro de Placeholders)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se corrige un fallo en el motor de recuperación híbrida que causaba que el LLM respondiera con información de un cliente equivocado (ej. Parque Santiago) cuando se consultaba sobre otro cliente (ej. Hotel Villa Cortes). Se agrega detección automática de cliente en la consulta, filtrado de placeholders vacíos y priorización estricta de chunks del cliente detectado.
+
+### ✨ Novedades y Componentes Implementados
+- **Detección de cliente en consulta (`src/retrieval/hybrid.py`):** El método `_detect_client_in_query` identifica si la consulta menciona un cliente específico (ej. "villa cortes" → `hotel_villa_cortes`) comparando con los slugs disponibles en el vector store.
+- **Priorización por cliente:** Cuando se detecta un cliente, el retriever devuelve primero y casi exclusivamente chunks de ese cliente, limitando a 1 fuente ajena máximo. Esto evita que el LLM mezcle información de diferentes clientes.
+- **Filtro de placeholders:** Se eliminan chunks que solo contienen comentarios `<!-- Rellena aquí ... -->` sin información real, evitando que ocupen espacio en el contexto y empujen fuera chunks útiles.
+- **Corrección de prioridad de keywords:** Los identificadores técnicos (NET-IPTV-0041, XGE1/0/25, etc.) se priorizan sobre palabras genéricas en `_extract_keywords` para no quedar desplazados por el límite de `top_k`.
+
+### 🔧 Flujo de Uso
+```bash
+# Indexar documentos
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+
+# Consulta sobre cliente específico (el retriever filtra automáticamente)
+PYTHONPATH=. python3 run_chat.py llamacpp http://localhost:8080
+# > busca el caso NET-IPTV-0041 en villa cortes
+# Respuesta basada en [Hotel Villa Cortes - Muro de Conocimiento]
+```
+
+### ⚠️ Nota Importante
+Antes de esta versión, una consulta como "busca el caso NET-IPTV-0041" podía devolver información de Parque Santiago porque los chunks genéricos de varios clientes llenaban el contexto antes que los específicos de Villa Cortes. Ahora el retriever detecta el cliente mencionado y prioriza sus chunks.
+
+---
+
 ## v0.9.6-beta (Herramienta de Creación de Clientes)
 **Fecha:** Octubre 2026
 
