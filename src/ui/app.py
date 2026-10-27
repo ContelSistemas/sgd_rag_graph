@@ -14,6 +14,7 @@ from src.retrieval.hybrid import HybridRetriever
 from src.generation.local_llm import LocalLLMClient
 from src.vectorstore.indexer import KnowledgeBaseIndexer
 from src.ui.markdown_editor import render_markdown_editor
+from src.documentation import DocumentationAgent
 
 settings = get_settings()
 
@@ -35,7 +36,7 @@ vector_store, graph_manager, retriever = init_rag_components()
 st.title("📚 Graph RAG para Base del Conocimiento")
 st.markdown("Recuperación Aumentada por Grafo de Conocimiento y Búsqueda Vectorial (*On-Premise*)")
 
-tab_chat, tab_editor = st.tabs(["💬 Asistente Base del Conocimiento", "📝 Editor Documentos"])
+tab_chat, tab_editor, tab_doc = st.tabs(["💬 Asistente Base del Conocimiento", "📝 Editor Documentos", "📄 Documentar Incidencia"])
 
 with tab_chat:
     # Sidebar para configuración
@@ -137,3 +138,147 @@ with tab_chat:
 
 with tab_editor:
     render_markdown_editor()
+
+with tab_doc:
+    st.subheader("📄 Documentar Incidencia")
+    st.markdown(
+        "Entrega el **caso**, las **pruebas** y la **resolución** de una incidencia. "
+        "El agente, con ayuda del LLM local, organiza la información en el esquema de "
+        "frontmatter del proyecto y la guarda como archivo Markdown en `data/incidencias/`."
+    )
+
+    # Configuración del LLM para esta pestaña (valores por defecto de settings)
+    with st.expander("⚙️ Configuración del LLM", expanded=False):
+        doc_backend = st.selectbox(
+            "Backend LLM",
+            ["llamacpp", "ollama"],
+            index=0 if settings.llm_backend == "llamacpp" else 1,
+            key="doc_backend",
+        )
+        doc_base_url = st.text_input(
+            "URL Base del LLM",
+            value=settings.llm_base_url,
+            key="doc_base_url",
+        )
+        doc_timeout = st.slider(
+            "Timeout (segundos)",
+            30,
+            settings.api_max_timeout,
+            settings.llm_timeout,
+            key="doc_timeout",
+        )
+        doc_temperature = st.slider(
+            "Temperatura",
+            0.0,
+            1.0,
+            0.2,
+            0.1,
+            key="doc_temperature",
+        )
+        doc_n_predict = st.slider(
+            "Máx. tokens (n_predict)",
+            64,
+            4096,
+            1024,
+            64,
+            key="doc_n_predict",
+        )
+
+    st.markdown("---")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        caso = st.text_area(
+            "📋 Caso del incidente",
+            height=180,
+            placeholder="Describe qué ocurrió, qué servicio/cliente se vio afectado, síntomas observados...",
+            key="doc_caso",
+        )
+    with col2:
+        pruebas = st.text_area(
+            "🔬 Pruebas realizadas",
+            height=180,
+            placeholder="Capturas de tráfico, comandos ejecutados, logs, resultados de diagnósticos...",
+            key="doc_pruebas",
+        )
+
+    resolucion = st.text_area(
+        "✅ Resolución aplicada",
+        height=180,
+        placeholder="Qué se hizo para resolver el incidente, solución definitiva, workaround, configuraciones cambiadas...",
+        key="doc_resolucion",
+    )
+
+    col_save, col_over = st.columns(2)
+    with col_save:
+        write_file = st.checkbox(
+            "Guardar archivo en data/incidencias/",
+            value=True,
+            key="doc_write_file",
+        )
+    with col_over:
+        overwrite = st.checkbox(
+            "Sobreescribir si ya existe",
+            value=False,
+            key="doc_overwrite",
+        )
+
+    if st.button("🤖 Organizar con el LLM local", type="primary", key="doc_organize"):
+        if not (caso and pruebas and resolucion):
+            st.error("Por favor, rellena caso, pruebas y resolución antes de organizar.")
+        else:
+            with st.spinner("Contactando al LLM local y organizando la incidencia..."):
+                try:
+                    agent = DocumentationAgent(
+                        backend=doc_backend,
+                        base_url=doc_base_url,
+                        timeout=doc_timeout,
+                        temperature=doc_temperature,
+                        n_predict=doc_n_predict,
+                    )
+                    result = agent.run(
+                        caso=caso,
+                        pruebas=pruebas,
+                        resolucion=resolucion,
+                        write_file=write_file,
+                        overwrite=overwrite,
+                    )
+
+                    st.success("✅ Incidencia organizada correctamente")
+
+                    fm = result.frontmatter
+                    st.markdown("### 📋 Resultado organizado")
+
+                    meta_col1, meta_col2, meta_col3 = st.columns(3)
+                    with meta_col1:
+                        st.write(f"**ID:** {fm.id}")
+                        st.write(f"**Título:** {fm.title}")
+                        st.write(f"**Sistema:** {fm.sistema}")
+                    with meta_col2:
+                        st.write(f"**Categoría:** {fm.categoria}")
+                        st.write(f"**Criticidad:** {fm.criticidad}")
+                        st.write(f"**Tipo:** {fm.tipo}")
+                    with meta_col3:
+                        st.write(f"**Clientes:** {', '.join(fm.clientes_afectados) or '(ninguno)'}")
+                        st.write(f"**Tags:** {', '.join(fm.tags) or '(ninguno)'}")
+                        st.write(f"**F. detección:** {fm.fecha_deteccion}")
+                        st.write(f"**F. actualización:** {fm.fecha_actualizacion}")
+
+                    st.markdown("### 📄 Cuerpo Markdown")
+                    st.code(result.body, language="markdown")
+
+                    if result.file_path:
+                        st.info(f"💾 Archivo guardado en: `{result.file_path}`")
+                        st.markdown(
+                            "Para que el grafo y el vector store lo recojan, ejecuta la indexación:"
+                        )
+                        st.code(
+                            "PYTHONPATH=. python3 -m src.vectorstore.indexer",
+                            language="bash",
+                        )
+
+                    with st.expander("🔍 Salida cruda del LLM (JSON)"):
+                        st.code(result.raw_llm_output or "(no disponible)", language="json")
+
+                except Exception as e:
+                    st.error(f"Error al organizar la incidencia: {e}")

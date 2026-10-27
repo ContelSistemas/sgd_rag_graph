@@ -52,8 +52,9 @@ docker-compose --profile ui up --build
 | Hybrid Retriever | `src/retrieval/hybrid.py` | Vector search + graph neighbor expansion |
 | Local LLM Client | `src/generation/local_llm.py` | Multi-backend: Ollama (`/api/generate`) + llama.cpp (`/completion`) |
 | LLM Extractor | `src/graph/extractor.py` | Optional entity/relation extraction with JSON-forced LLM output |
-| REST API | `src/api/main.py` | FastAPI: `/health`, `/index`, `/query` |
-| Streamlit UI | `src/ui/app.py` | Web interface with config sidebar |
+| Documentation Agent | `src/documentation/agent.py` | Organizes incident notes (case/evidence/resolution) via local LLM into frontmatter + Markdown in `data/incidencias/` |
+| REST API | `src/api/main.py` | FastAPI: `/health`, `/index`, `/query`, `/documentar-incidencia` |
+| Streamlit UI | `src/ui/app.py` | Web interface with config sidebar + "Documentar Incidencia" tab |
 
 ## Data Layout
 ```
@@ -62,6 +63,8 @@ data/
 │   ├── <cliente>/          # Un cliente = un directorio con sus .md
 │   │   ├── <cliente>.md    # Índice central del cliente
 │   │   └── <cliente>_<sistema>.md  # Subsistemas (iptv, xgspon, switches, voip, tv, wifi)
+├── incidencias/            # Casos de incidencia genéricos (referenciados vía [[<CASE_ID>]])
+│   └── <CASE_ID>.md        # Ej: NET-IPTV-0041.md con frontmatter completo
 ├── vectorstore/            # ChromaDB persistence
 └── knowledge_graph.json    # NetworkX graph export
 ```
@@ -82,6 +85,72 @@ PYTHONPATH=. python3 -m src.vectorstore.indexer
 ```
 
 Cada cliente obtiene `id` único en el frontmatter, enlaces wiki bidireccionales entre el índice central y sus subsistemas, y comentarios para rellenar el conocimiento.
+
+## Documentar Incidencias (`src/documentation/agent.py`)
+
+El agente de documentación permite crear casos de incidencia genéricos en `data/incidencias/` a partir de notas crudas (caso, pruebas y resolución), organizadas con el LLM local según el esquema de frontmatter del proyecto. Esto permite que múltiples clientes referencien el mismo caso vía `[[<CASE_ID>]]` sin duplicar contenido.
+
+### Uso
+
+```python
+from src.documentation import DocumentationAgent
+
+agent = DocumentationAgent()
+result = agent.run(
+    caso="Corte de IPTV cada 4 minutos...",
+    pruebas="Captura IGMP... el STB ignora queries de 0.0.0.0",
+    resolucion="Configurar SVI con IP 10.40.0.2/24 en VLAN 400",
+    write_file=True,  # guarda en data/incidencias/<ID>.md
+)
+print(result.file_path)  # data/incidencias/NET-IPTV-0042.md
+```
+
+### CLI de ejemplo
+
+```bash
+PYTHONPATH=. python3 scripts/documentar_incidencia.py \
+    --caso "..." \
+    --pruebas "..." \
+    --resolucion "..."
+```
+
+### Endpoint API
+
+```bash
+curl -X POST http://localhost:8000/documentar-incidencia \
+  -H "Content-Type: application/json" \
+  -d '{"caso": "...", "pruebas": "...", "resolucion": "..."}'
+```
+
+### UI Streamlit
+
+```bash
+streamlit run src/ui/app.py
+# → pestaña "📄 Documentar Incidencia"
+```
+
+### Frontmatter generado (campos obligatorios)
+
+`id`, `title`, `caso`, `tipo`, `categoria`, `sistema`, `criticidad`, `tags`, `clientes_afectados`, `fecha_deteccion`, `fecha_actualizacion`.
+
+### Cuerpo Markdown generado
+
+Secciones estándar: `## 1. Síntoma del Problema`, `## 2. Causa Raíz (Análisis Técnico)`, `## 3. Protocolo de Resolución`, `## 4. Comprobación de Verificación`.
+
+### Después de documentar
+
+Ejecutar el indexador para que el grafo y el vector store recojan el nuevo caso:
+
+```bash
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+Luego referenciar el caso desde cualquier cliente vía wiki link:
+
+```markdown
+## Incidencias destacadas
+- [[NET-IPTV-0042]]
+```
 
 ## Environment Variables (API)
 | Variable | Default | Description |
@@ -149,8 +218,14 @@ Cuando una consulta menciona un cliente específico (ej. "villa cortes", "parque
 - **Embedding model** changed to `paraphrase-multilingual-mpnet-base-v2` (768 dims) — requires reindexing (`rm -rf data/vectorstore`)
 - **default_top_k** increased to 20; **MAX_CONTEXTS_PER_SOURCE** increased to 10
 
-## Sprint 1.6 Improvements (v0.9.6 — In Progress)
+## Sprint 1.6 Improvements (v0.9.6 — Completed)
 - **LLM Extractor** (`src/graph/extractor.py`): Optional entity/relation extraction with JSON-forced output, entity normalization/deduplication, frontmatter-to-graph integration
 - **Opción A / Opción C**: Base pipeline without LLM extraction (default) vs optional LLM enrichment for production
 - **Centralized extraction config**: `extraction_enabled`, `extraction_model`, `extraction_temperature`, `extraction_max_tokens`, `entity_similarity_threshold` in `src/config/settings.py`
 - **Indexer integration**: `KnowledgeBaseIndexer` instantiates `LLMExtractor` only when `extraction_enabled = true`
+
+## Sprint 1.6-delta Improvements (v0.9.6-delta — Completed)
+- **Documentation Agent** (`src/documentation/agent.py`): `DocumentationAgent` organizes incident notes (case/evidence/resolution) via local LLM into frontmatter + Markdown in `data/incidencias/`; includes `IncidentFrontmatter` and `DocumentationResult` data models
+- **CLI** (`scripts/documentar_incidencia.py`): Document incidents from console with `--caso`, `--pruebas`, `--resolucion`
+- **API** (`src/api/main.py`): New endpoint `POST /documentar-incidencia` with `DocumentationRequest`/`DocumentationResponse`
+- **Streamlit UI** (`src/ui/app.py`): New tab "📄 Documentar Incidencia" with case/evidence/resolution text areas, LLM config, result preview, and raw LLM output expander

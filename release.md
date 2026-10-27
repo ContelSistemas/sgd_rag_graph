@@ -1,5 +1,47 @@
 # Notas de Versión - Graph RAG para Base del Conocimiento
 
+## v0.9.6-delta (Agente de Documentación de Incidencias + API /documentar-incidencia + UI)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se agrega un **Agente de Documentación de Incidencias** que recibe notas crudas (caso, pruebas y resolución) y, con ayuda del LLM local, las organiza siguiendo el esquema de frontmatter del proyecto y las guarda como archivo Markdown en `data/incidencias/`. Se integra tanto en la API REST (`POST /documentar-incidencia`) como en la UI de Streamlit (nueva pestaña "📄 Documentar Incidencia"), permitiendo documentar casos de red de forma client-agnostic para que múltiples clientes puedan referenciarlos vía `[[<CASE_ID>]]` sin duplicar contenido.
+
+### ✨ Novedades y Componentes Implementados
+- **Agente de Documentación (`src/documentation/agent.py`):** `DocumentationAgent` con `organize()` (solo organiza con LLM) y `run()` (organiza y guarda archivo). Recibe caso/pruebas/resolución, llama al LLM local forzando salida JSON, valida el frontmatter obligatorio (`id`, `title`, `caso`, `tipo`, `categoria`, `sistema`, `criticidad`, `tags`, `clientes_afectados`, `fecha_deteccion`, `fecha_actualizacion`) y genera el cuerpo Markdown con las secciones estándar: Síntoma del Problema, Causa Raíz, Protocolo de Resolución y Comprobación de Verificación.
+- **Modelos de datos (`src/documentation/agent.py`):** `IncidentFrontmatter` (esquema de frontmatter YAML con serialización a YAML y dict) y `DocumentationResult` (resultado completo con frontmatter, cuerpo, ruta y salida cruda del LLM).
+- **CLI de ejemplo (`scripts/documentar_incidencia.py`):** Permite documentar incidencias desde consola pasando `--caso`, `--pruebas` y `--resolucion`, o leyendo desde stdin con marcas `CASO:/PRUEBAS:/RESOLUCION:`.
+- **Endpoint API (`POST /documentar-incidencia`):** En `src/api/main.py`, acepta `DocumentationRequest` y devuelve `DocumentationResponse` con todo el frontmatter, cuerpo Markdown, ruta del archivo y salida cruda del LLM.
+- **Pestaña UI Streamlit:** Nueva pestaña "📄 Documentar Incidencia" en `src/ui/app.py` con áreas de texto para caso/pruebas/resolución, configuración de LLM (backend, URL, timeout, temperatura, n_predict), botón de organización y vista previa del resultado con metadatos y cuerpo Markdown.
+- **Integración con indexado:** Tras guardar un archivo en `data/incidencias/`, basta ejecutar `PYTHONPATH=. python3 -m src.vectorstore.indexer` para que el grafo y el vector store lo recojan como cualquier otro documento de la Base del Conocimiento.
+
+### 🔧 Flujo de Uso
+```bash
+# 1. Documentar una incidencia (CLI)
+PYTHONPATH=. python3 scripts/documentar_incidencia.py \
+    --caso "Corte de IPTV cada 4 minutos..." \
+    --pruebas "Captura IGMP... el STB ignora queries de 0.0.0.0" \
+    --resolucion "Configurar SVI con IP 10.40.0.2/24 en VLAN 400"
+
+# 2. O desde la API
+curl -X POST http://localhost:8000/documentar-incidencia \
+  -H "Content-Type: application/json" \
+  -d '{"caso": "...", "pruebas": "...", "resolucion": "..."}'
+
+# 3. O desde la UI Streamlit
+streamlit run src/ui/app.py   # pestaña "📄 Documentar Incidencia"
+
+# 4. Indexar para que el grafo y vector store lo recojan
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+
+# 5. Referenciar el caso desde cualquier cliente vía wiki link
+# [[NET-IPTV-0042]]  (en cualquier archivo .md de data/clientes/)
+```
+
+### ⚠️ Nota Importante
+El agente requiere el **servidor LLM local levantado** (ollama o llama.cpp) en la URL configurada. Si no está disponible, el endpoint y la UI devuelven error tras los reintentos con backoff exponencial (misma política que el resto del proyecto). El archivo generado usa el mismo esquema de frontmatter que las incidencias existentes en `data/incidencias/` (ver `NET-IPTV-0041.md`).
+
+---
+
 ## v0.9.6-gamma (Corrección de Recuperación por Cliente y Filtro de Placeholders)
 **Fecha:** Octubre 2026
 

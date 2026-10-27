@@ -165,3 +165,51 @@ PYTHONPATH=. python3 run_chat.py llamacpp http://localhost:8080
 ```
 
 Para que funcione, el nombre en la consulta debe coincidir con parte del slug del cliente (ej. "villa cortes" detecta `hotel_villa_cortes`). Los chunks placeholder (`<!-- Rellena aquí ... -->`) se filtran automáticamente para no ocupar espacio en el contexto.
+
+---
+
+## Documentar Incidencias (Agente de Documentación — v0.9.6-delta)
+
+El agente de documentación permite crear casos de incidencia genéricos en `data/incidencias/` a partir de notas crudas (caso, pruebas y resolución), organizadas con el LLM local según el esquema de frontmatter del proyecto.
+
+### Archivos implicados
+
+| Archivo | Función |
+|---|---|
+| `src/documentation/agent.py` | `DocumentationAgent`, `IncidentFrontmatter`, `DocumentationResult` — organiza con LLM y guarda en `data/incidencias/<ID>.md` |
+| `src/documentation/__init__.py` | Paquete con exports públicos |
+| `scripts/documentar_incidencia.py` | CLI de ejemplo para documentar desde consola |
+| `src/api/main.py` | Endpoint `POST /documentar-incidencia` |
+| `src/ui/app.py` | Pestaña "📄 Documentar Incidencia" en Streamlit |
+
+### Cómo usarlo
+
+**CLI:**
+```bash
+PYTHONPATH=. python3 scripts/documentar_incidencia.py \
+    --caso "..." \
+    --pruebas "..." \
+    --resolucion "..."
+```
+
+**API:**
+```bash
+curl -X POST http://localhost:8000/documentar-incidencia \
+  -H "Content-Type: application/json" \
+  -d '{"caso": "...", "pruebas": "...", "resolucion": "..."}'
+```
+
+**UI Streamlit:**
+```bash
+streamlit run src/ui/app.py
+# → pestaña "📄 Documentar Incidencia"
+```
+
+**Después de guardar, indexar:**
+```bash
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+### Requisito
+
+El agente requiere el **servidor LLM local levantado** (ollama o llama.cpp) en la URL configurada en `.env` (por defecto `http://localhost:8080`).

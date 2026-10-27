@@ -46,8 +46,10 @@ graph TD
 grafrac/
 ├── config/              # Configuración centralizada (pydantic-settings)
 ├── data/                # Documentos de la Base del Conocimiento y persistencia local
+│   ├── clientes/        # Una carpeta por cliente
+│   └── incidencias/     # Casos de incidencia genéricos (referenciados vía [[<ID>]])
 ├── docs/                # Documentación y esquemas (mindmap, SVG)
-├── src/                 # Código fuente (ingestion, graph, vectorstore, retrieval, generation, api, ui, config)
+├── src/                 # Código fuente (ingestion, graph, vectorstore, retrieval, generation, documentation, api, ui, config)
 ├── tests/               # Pruebas unitarias e integración
 ├── requirements.txt     # Dependencias de Python
 ├── README.md            # Documentación principal
@@ -130,6 +132,7 @@ Endpoints disponibles:
 - `GET /health`: Estado de salud del servicio.
 - `POST /index`: Ejecuta la indexación de los documentos de la Base del Conocimiento.
 - `POST /query`: Realiza una consulta híbrida (vectorial + grafo) y síntesis con LLM local.
+- `POST /documentar-incidencia`: Recibe caso, pruebas y resolución de una incidencia, las organiza con el LLM local y (opcionalmente) guarda el archivo Markdown en `data/incidencias/<ID>.md`.
 
 
 Para ejecutar la demostración completa del sistema (Fase 5) indexando la documentación de la Base del Conocimiento, realizando recuperación híbrida y consultando al LLM local (ej. Llama.cpp en `http://localhost:8080`):
@@ -396,6 +399,88 @@ El indexador es idempotente por archivo: solo reemplaza los chunks del documento
 
 ---
 
+## 📄 Documentar Incidencias (Agente de Documentación)
+
+El proyecto incluye un **Agente de Documentación de Incidencias** (`src/documentation/agent.py`) que recibe notas crudas de un incidente (caso, pruebas y resolución) y, con ayuda del LLM local, las organiza siguiendo el esquema de frontmatter del proyecto y las guarda como archivo Markdown en `data/incidencias/`. Esto permite que múltiples clientes referencien el mismo caso vía `[[<CASE_ID>]]` sin duplicar detalles.
+
+### ¿Qué hace el agente?
+
+1. Recibe **caso**, **pruebas** y **resolución** (texto libre en castellano).
+2. Llama al **LLM local** (ollama o llama.cpp) forzando salida JSON.
+3. Valida que el frontmatter tenga todos los campos obligatorios: `id`, `title`, `caso`, `tipo`, `categoria`, `sistema`, `criticidad`, `tags`, `clientes_afectados`, `fecha_deteccion`, `fecha_actualizacion`.
+4. Genera el **cuerpo Markdown** con las secciones estándar: Síntoma del Problema, Causa Raíz, Protocolo de Resolución y Comprobación de Verificación.
+5. Guarda el archivo en `data/incidencias/<ID>.md` (listo para ser indexado y referenciado).
+
+### Campos del frontmatter generado
+
+| Campo | Descripción | Ejemplo |
+|-------|-------------|---------|
+| `id` | Identificador único del caso | `NET-IPTV-0042` |
+| `title` | Título descriptivo corto | `Cortes de IPTV a los 4 minutos` |
+| `caso` | Mismo valor que `id` | `NET-IPTV-0042` |
+| `tipo` | Siempre `incidencia` | `incidencia` |
+| `categoria` | Categoría técnica | `redes_iptv` |
+| `sistema` | Sistema afectado | `iptv` |
+| `criticidad` | `baja`, `media`, `alta`, `critica` | `alta` |
+| `tags` | Lista de etiquetas con `#` | `["#incidencia", "#iptv", "#igmp"]` |
+| `clientes_afectados` | Slugs de clientes afectados | `["hotel_villa_cortes"]` |
+| `fecha_deteccion` | `YYYY-MM-DD` | `2026-10-27` |
+| `fecha_actualizacion` | `YYYY-MM-DD` | `2026-10-27` |
+
+### Formas de usar el agente
+
+**Desde la CLI:**
+```bash
+PYTHONPATH=. python3 scripts/documentar_incidencia.py \
+    --caso "Corte de IPTV cada 4 minutos en el switch del salón..." \
+    --pruebas "Se capturó tráfico IGMP... el STB no responde a Queries de 0.0.0.0" \
+    --resolucion "Se configuró SVI con IP 10.40.0.2/24 en la VLAN 400"
+```
+
+**Desde la API REST:**
+```bash
+curl -X POST http://localhost:8000/documentar-incidencia \
+  -H "Content-Type: application/json" \
+  -d '{"caso": "...", "pruebas": "...", "resolucion": "..."}'
+```
+
+**Desde la UI Streamlit:**
+```bash
+streamlit run src/ui/app.py
+# → pestaña "📄 Documentar Incidencia"
+```
+
+**Desde Python:**
+```python
+from src.documentation import DocumentationAgent
+
+agent = DocumentationAgent()
+result = agent.run(
+    caso="...",
+    pruebas="...",
+    resolucion="...",
+    write_file=True,   # guarda en data/incidencias/<ID>.md
+)
+print(result.file_path)  # data/incidencias/NET-IPTV-0042.md
+```
+
+### Después de documentar
+
+Siempre ejecuta el indexador para que el grafo y el vector store recojan el nuevo caso:
+
+```bash
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+Luego puedes referenciar el caso desde cualquier archivo de cliente vía wiki link:
+
+```markdown
+## Incidencias destacadas
+- [[NET-IPTV-0042]]
+```
+
+---
+
 ## 🚀 Hoja de Ruta
 
 1. **Fase 1:** Diseño arquitectónico, directrices y estructuración documental. *(Completado)*
@@ -410,4 +495,5 @@ El indexador es idempotente por archivo: solo reemplaza los chunks del documento
 10. **Sprint 1.1 (v0.9.1):** TUI Textual, Configuración `.env` y Soporte Multi-Interfaz. *(Completado)*
 11. **Sprint 1.2 (v0.9.2):** Modelo Ligero 1B, Deduplicación de Contextos y Optimización para Hardware Limitado. *(Completado)*
 12. **Sprint 1.3 (v0.9.3):** Ingesta de Documentos Word (.docx) y PDF. *(Completado)*
-13. **Sprint 1.6 (v0.9.6):** Extractor de Entidades y Relaciones con LLM (Opción A por defecto, Opción C opcional para producción). *(En Progreso)*
+13. **Sprint 1.6 (v0.9.6):** Extractor de Entidades y Relaciones con LLM (Opción A por defecto, Opción C opcional para producción). *(Completado)*
+14. **Sprint 1.6-delta (v0.9.6-delta):** Agente de Documentación de Incidencias, endpoint `POST /documentar-incidencia` y pestaña UI "Documentar Incidencia". *(Completado)*
