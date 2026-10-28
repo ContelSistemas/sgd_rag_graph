@@ -350,14 +350,16 @@ Documentado en el backlog para integrar con `pypdf`/`pdfplumber` y OCR (`pytesse
 
 ---
 
-## 🆕 Crear Nuevos Clientes (`scripts/crear_cliente.py`)
+## 🆕 Crear Nuevos Clientes y Estructura de Directorios (`scripts/crear_cliente.py` y `scripts/crear_estructura.py`)
 
-Para añadir un nuevo cliente a la Base del Conocimiento sin romper lo existente, usa el script `scripts/crear_cliente.py`. Crea automáticamente el directorio, los archivos Markdown con frontmatter YAML y los enlaces wiki bidireccionales.
+Para añadir un nuevo cliente a la Base del Conocimiento sin romper lo existente, puedes usar cualquiera de los dos scripts. Ambos crean el directorio bajo `data/clientes/<slug>/`, un índice central (`<slug>.md`) y un archivo por subsistema (`<slug>_<sistema>.md`) con frontmatter YAML y enlaces wiki bidireccionales.
 
-### Uso
+### `scripts/crear_cliente.py` (original)
+
+Crea clientes con los sistemas por defecto (`iptv, xgspon, switches, voip, tv, wifi`) o personalizados.
 
 ```bash
-# Con los sistemas por defecto (iptv, xgspon, switches, voip, tv, wifi)
+# Con los sistemas por defecto
 PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente"
 
 # Con sistemas personalizados
@@ -365,6 +367,30 @@ PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente" iptv switches
 
 # Con fecha personalizada
 PYTHONPATH=. python3 scripts/crear_cliente.py "Nombre del Cliente" --fecha 2026-10-24
+```
+
+### `scripts/crear_estructura.py` (extendido)
+
+Además de crear clientes, inicializa la estructura raíz de `data/` (`clientes/`, `incidencias/`, `vectorstore/`), valida los sistemas contra un catálogo, es idempotente (`--force` para sobrescribir) y acepta `--data-dir`, `--fecha` y `--autor` personalizados.
+
+```bash
+# Inicializar solo la estructura raíz de data/
+PYTHONPATH=. python3 scripts/crear_estructura.py --init-data-dir
+
+# Crear cliente con sistemas por defecto
+PYTHONPATH=. python3 scripts/crear_estructura.py "Nombre del Cliente"
+
+# Con sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_estructura.py "Nombre del Cliente" iptv switches wifi
+
+# Sobrescribir archivos existentes
+PYTHONPATH=. python3 scripts/crear_estructura.py "Nombre del Cliente" --force
+
+# Directorio de datos, fecha y autor personalizados
+PYTHONPATH=. python3 scripts/crear_estructura.py "Nombre del Cliente" --data-dir ./data --fecha 2026-10-24 --autor "Equipo TI"
+
+# Listar sistemas disponibles
+PYTHONPATH=. python3 scripts/crear_estructura.py --listar-sistemas
 ```
 
 ### Qué crea

@@ -1,5 +1,42 @@
 # Notas de Versión - Graph RAG para Base del Conocimiento
 
+## v0.9.6-epsilon (Script extendido de creación de clientes y estructura de directorios)
+**Fecha:** Octubre 2026
+
+### 📋 Resumen de la Versión
+Se agrega el script `scripts/crear_estructura.py`, una versión extendida de `scripts/crear_cliente.py` para crear la estructura de directorios y los documentos Markdown iniciales de un cliente en la Base del Conocimiento. Además de crear clientes, permite inicializar la estructura raíz de `data/` (`clientes/`, `incidencias/`, `vectorstore/`), valida los sistemas contra un catálogo, es idempotente (`--force`) y acepta `--data-dir`, `--fecha` y `--autor` personalizados.
+
+### ✨ Novedades y Componentes Implementados
+- **Script extendido de creación de clientes (`scripts/crear_estructura.py`):** Crea automáticamente el directorio bajo `data/clientes/<slug>/`, el archivo índice central (`<slug>.md`) y un archivo por subsistema (`<slug>_<sistema>.md`). Cada archivo incluye frontmatter YAML con `id` único, enlaces wiki bidireccionales y comentarios para rellenar el conocimiento. Sistemas por defecto: `iptv`, `xgspon`, `switches`, `voip`, `tv`, `wifi`.
+- **Validación de sistemas:** Valida que los sistemas solicitados existan en el catálogo; ignora sistemas desconocidos con advertencia.
+- **Inicialización de estructura raíz (`--init-data-dir`):** Crea `data/clientes/`, `data/incidencias/` y `data/vectorstore/` si aún no existen.
+- **Idempotencia (`--force`):** Omite archivos existentes por defecto; usa `--force` para sobrescribirlos.
+- **Parámetros personalizados:** `--data-dir`, `--fecha` (YYYY-MM-DD) y `--autor` para adaptar el frontmatter generado.
+- **Listado de sistemas (`--listar-sistemas`):** Muestra el catálogo de sistemas disponibles con nombre, categoría y criticidad.
+
+### 🔧 Flujo de Uso
+```bash
+# 1. Inicializar estructura raíz de data/ (opcional, solo la primera vez)
+PYTHONPATH=. python3 scripts/crear_estructura.py --init-data-dir
+
+# 2. Crear un nuevo cliente con sistemas por defecto
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina"
+
+# 3. Crear cliente con sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" iptv switches wifi
+
+# 4. Sobrescribir archivos existentes si es necesario
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" --force
+
+# 5. Indexar los documentos (incluye los nuevos automáticamente)
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+### ⚠️ Nota Importante
+El script solo crea archivos Markdown con frontmatter y enlaces wiki. No indexa en ChromaDB ni en el grafo; debes ejecutar el indexador después. Los clientes existentes (ej. Parque Santiago) no se ven afectados a menos que uses `--force` sobre el mismo cliente.
+
+---
+
 ## v0.9.6-delta (Agente de Documentación de Incidencias + API /documentar-incidencia + UI)
 **Fecha:** Octubre 2026
 

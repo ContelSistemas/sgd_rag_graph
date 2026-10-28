@@ -55,6 +55,7 @@ docker-compose --profile ui up --build
 | Documentation Agent | `src/documentation/agent.py` | Organizes incident notes (case/evidence/resolution) via local LLM into frontmatter + Markdown in `data/incidencias/` |
 | REST API | `src/api/main.py` | FastAPI: `/health`, `/index`, `/query`, `/documentar-incidencia` |
 | Streamlit UI | `src/ui/app.py` | Web interface with config sidebar + "Documentar Incidencia" tab |
+| Crear Estructura/Clientes | `scripts/crear_estructura.py` | Creates directories and initial Markdown documents per client and system; validates systems, idempotent (`--force`), `--init-data-dir` |
 
 ## Data Layout
 ```
@@ -69,16 +70,47 @@ data/
 └── knowledge_graph.json    # NetworkX graph export
 ```
 
-## Crear Nuevos Clientes (`scripts/crear_cliente.py`)
+## Crear Nuevos Clientes y Estructura de Directorios (`scripts/crear_cliente.py` y `scripts/crear_estructura.py`)
 
-Para añadir un cliente sin romper lo existente:
+Para añadir un cliente sin romper lo existente, puedes usar cualquiera de los dos scripts. Ambos crean el directorio bajo `data/clientes/<slug>/`, un índice central (`<slug>.md`) y un archivo por subsistema (`<slug>_<sistema>.md`) con frontmatter YAML y enlaces wiki bidireccionales.
+
+### `scripts/crear_cliente.py` (original)
+
+Crea clientes con los sistemas por defecto (`iptv, xgspon, switches, voip, tv, wifi`) o personalizados.
 
 ```bash
-# Sistemas por defecto (iptv, xgspon, switches, voip, tv, wifi)
+# Sistemas por defecto
 PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina"
 
 # Sistemas personalizados
 PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina" iptv switches wifi
+
+# Luego indexar
+PYTHONPATH=. python3 -m src.vectorstore.indexer
+```
+
+### `scripts/crear_estructura.py` (extendido)
+
+Además de crear clientes, permite inicializar la estructura raíz de `data/` (`clientes/`, `incidencias/`, `vectorstore/`), valida los sistemas contra un catálogo, es idempotente (`--force` para sobrescribir) y acepta `--data-dir`, `--fecha` y `--autor` personalizados.
+
+```bash
+# Inicializar solo la estructura raíz de data/
+PYTHONPATH=. python3 scripts/crear_estructura.py --init-data-dir
+
+# Crear cliente con sistemas por defecto
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina"
+
+# Sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" iptv switches wifi
+
+# Sobrescribir archivos existentes
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" --force
+
+# Directorio de datos, fecha y autor personalizados
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" --data-dir ./data --fecha 2026-10-24 --autor "Equipo TI"
+
+# Listar sistemas disponibles
+PYTHONPATH=. python3 scripts/crear_estructura.py --listar-sistemas
 
 # Luego indexar
 PYTHONPATH=. python3 -m src.vectorstore.indexer

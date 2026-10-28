@@ -128,9 +128,11 @@ streamlit run src/ui/app.py
 
 ---
 
-## Crear Nuevos Clientes (`scripts/crear_cliente.py`)
+## Crear Nuevos Clientes y Estructura de Directorios (`scripts/crear_cliente.py` y `scripts/crear_estructura.py`)
 
-El script permite añadir clientes a la Base del Conocimiento sin romper lo existente:
+El proyecto incluye dos scripts para añadir clientes a la Base del Conocimiento sin romper lo existente:
+
+### `scripts/crear_cliente.py` (original)
 
 ```bash
 # Sistemas por defecto: iptv, xgspon, switches, voip, tv, wifi
@@ -141,6 +143,27 @@ PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina" iptv switches w
 
 # Con fecha personalizada
 PYTHONPATH=. python3 scripts/crear_cliente.py "Hotel Guayarmina" --fecha 2026-10-24
+```
+
+### `scripts/crear_estructura.py` (extendido)
+
+Además de crear clientes, inicializa la estructura raíz de `data/`, valida sistemas, es idempotente (`--force`) y acepta `--data-dir`, `--fecha` y `--autor`.
+
+```bash
+# Inicializar estructura raíz de data/
+PYTHONPATH=. python3 scripts/crear_estructura.py --init-data-dir
+
+# Crear cliente con sistemas por defecto
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina"
+
+# Sistemas personalizados
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" iptv switches wifi
+
+# Sobrescribir archivos existentes
+PYTHONPATH=. python3 scripts/crear_estructura.py "Hotel Guayarmina" --force
+
+# Listar sistemas disponibles
+PYTHONPATH=. python3 scripts/crear_estructura.py --listar-sistemas
 ```
 
 Después de crear, siempre indexar:
