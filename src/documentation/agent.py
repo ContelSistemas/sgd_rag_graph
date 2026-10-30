@@ -154,8 +154,8 @@ class DocumentationAgent:
     ):
         self.settings = settings or get_settings()
         self.incidencias_dir = Path(
-            incidencias_dir or str(self.settings.data_dir) / "incidencias"
-        )
+            incidencias_dir or self.settings.data_dir
+        ) / "incidencias"
         self.incidencias_dir.mkdir(parents=True, exist_ok=True)
 
         self.backend = (backend or self.settings.llm_backend).lower()
