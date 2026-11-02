@@ -37,6 +37,29 @@ El script solo crea archivos Markdown con frontmatter y enlaces wiki. No indexa 
 
 ---
 
+## v0.9.6-zeta (TUI: corrección de envuelto de líneas y scroll horizontal)
+**Fecha:** Noviembre 2026
+
+### 📋 Resumen de la Versión
+Se corrige el widget `Log` de la TUI Textual (`src/ui/tui.py`) que causaba scroll lateral al renderizar respuestas largas y fuentes. El widget no ajustaba el texto al ancho real del panel central de la app, sino que intentaba usar el ancho de la terminal externa, y además se le pasaba un parámetro `wrap=True` no soportado por la versión instalada de Textual (8.2.8), provocando un `TypeError` al iniciar la interfaz.
+
+### ✨ Novedades y Componentes Implementados
+- **Eliminado `wrap=True` del `Log`:** El constructor de `Log` en Textual 8.2.8 no acepta el parámetro `wrap`. Se eliminó para evitar el `TypeError` en `compose()` al lanzar la TUI.
+- **Envuelto al ancho del widget (`_write_wrapped`):** Ahora usa `log_widget.size.width` (ancho real del widget `Log` dentro de la app TUI, más estrecho por la barra lateral) en lugar de `shutil.get_terminal_size()` (ancho de la terminal externa). Se eliminó el método obsoleto `_wrap_text` y la importación de `shutil`.
+- **Líneas en blanco entre pregunta y respuesta:** Cada bloque (pregunta, respuesta, fuentes) queda separado por una línea en blanco para mejorar la legibilidad del chat.
+- **Sin scroll horizontal:** Las respuestas y fuentes se ajustan al ancho del panel central de la TUI.
+
+### 🔧 Flujo de Uso
+```bash
+# Lanzar la TUI (requiere LLM server en http://localhost:8080)
+PYTHONPATH=. python3 src/ui/tui.py
+```
+
+### ⚠️ Nota Importante
+Si usas una versión de Textual diferente a la 8.2.8, verifica que `Log` acepte el parámetro `wrap`; en caso contrario, no lo pases y confía en el envuelto manual de `_write_wrapped`.
+
+---
+
 ## v0.9.6-delta (Agente de Documentación de Incidencias + API /documentar-incidencia + UI)
 **Fecha:** Octubre 2026
 

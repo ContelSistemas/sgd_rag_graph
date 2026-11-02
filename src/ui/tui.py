@@ -2,6 +2,7 @@ import asyncio
 import sys
 from functools import partial
 from pathlib import Path
+from textwrap import wrap
 from typing import List, Dict, Any
 
 root_dir = Path(__file__).resolve().parent.parent.parent
@@ -45,7 +46,8 @@ class GraphRAGTUI(App):
                 )
                 yield Input(placeholder="http://localhost:8080", id="base_url_input", value="http://localhost:8080")
                 yield Input(placeholder="300", id="timeout_input", value="300")
-                yield Input(placeholder=str(settings.default_top_k), id="top_k_input", value=str(settings.default_top_k))
+                _settings = get_settings()
+                yield Input(placeholder=str(_settings.default_top_k), id="top_k_input", value=str(_settings.default_top_k))
                 yield Input(placeholder="1", id="graph_radius_input", value="1")
                 yield Static()
                 yield Button("Indexar Base del Conocimiento", id="btn_index", variant="primary")
@@ -72,6 +74,14 @@ class GraphRAGTUI(App):
             f"Grafo: {self.graph_manager.graph.number_of_nodes()} nodos, "
             f"{self.graph_manager.graph.number_of_edges()} aristas"
         )
+
+    def _write_wrapped(self, log_msg: str, prefix: str = "") -> None:
+        """Escribe un mensaje en el Log envolviéndolo al ancho del widget."""
+        log_widget = self.query_one("#chat_log", Log)
+        width = log_widget.size.width if log_widget.size and log_widget.size.width > 0 else 100
+        width = max(40, width - 4)
+        wrapped = [f"{prefix}{line}" for line in wrap(log_msg, width=width)] or [""]
+        log_widget.write("\n".join(wrapped) + "\n")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_index":
@@ -102,7 +112,7 @@ class GraphRAGTUI(App):
         if not query:
             return
         event.input.value = ""
-        self.query_one("#chat_log", Log).write(f"[Tú] {query}")
+        self.query_one("#chat_log", Log).write(f"[Tú] {query}\n")
         self.messages.append({"role": "user", "content": query})
         self.run_worker(partial(self._query_worker, query), thread=True, exclusive=True)
 
@@ -113,6 +123,7 @@ class GraphRAGTUI(App):
         top_k = int(self.query_one("#top_k_input", Input).value or 4)
         graph_radius = int(self.query_one("#graph_radius_input", Input).value or 1)
 
+        self.app.call_from_thread(self._query_log_write, "")
         self.app.call_from_thread(self._query_log_write, "[Generando respuesta...]")
         try:
             contexts = self.retriever.retrieve(query, top_k=top_k, graph_radius=graph_radius)
@@ -125,21 +136,20 @@ class GraphRAGTUI(App):
                 base_delay=self.settings.llm_base_delay,
             )
             answer = llm.generate_response(query, contexts)
-            self.app.call_from_thread(self._query_log_write, f"[Asistente] {answer}")
+            self.app.call_from_thread(self._write_wrapped, f"[Asistente] {answer}")
             if contexts:
+                self.app.call_from_thread(self._query_log_write, "")
                 self.app.call_from_thread(self._query_log_write, "[Fuentes]")
                 for src in contexts:
                     meta = src.get("metadata", {})
-                    self.app.call_from_thread(
-                        self._query_log_write,
-                        f"- {meta.get('title', 'N/A')} ({meta.get('source_path', 'N/A')})",
-                    )
+                    src_line = f"- {meta.get('title', 'N/A')} ({meta.get('source_path', 'N/A')})"
+                    self.app.call_from_thread(self._write_wrapped, src_line)
             self.messages.append({"role": "assistant", "content": answer, "sources": contexts})
         except Exception as e:
             self.app.call_from_thread(self._query_log_write, f"[Error: {e}]")
 
     def _query_log_write(self, msg: str) -> None:
-        self.query_one("#chat_log", Log).write(msg)
+        self.query_one("#chat_log", Log).write(msg + "\n")
 
 
 if __name__ == "__main__":

@@ -523,3 +523,4 @@ Luego puedes referenciar el caso desde cualquier archivo de cliente vía wiki li
 12. **Sprint 1.3 (v0.9.3):** Ingesta de Documentos Word (.docx) y PDF. *(Completado)*
 13. **Sprint 1.6 (v0.9.6):** Extractor de Entidades y Relaciones con LLM (Opción A por defecto, Opción C opcional para producción). *(Completado)*
 14. **Sprint 1.6-delta (v0.9.6-delta):** Agente de Documentación de Incidencias, endpoint `POST /documentar-incidencia` y pestaña UI "Documentar Incidencia". *(Completado)*
+15. **Sprint 1.6-epsilon (v0.9.6-epsilon):** TUI: corrección de envuelto de líneas y eliminación de scroll horizontal en el widget `Log` (`src/ui/tui.py`). *(Completado)*

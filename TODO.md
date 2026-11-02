@@ -236,3 +236,31 @@ PYTHONPATH=. python3 -m src.vectorstore.indexer
 ### Requisito
 
 El agente requiere el **servidor LLM local levantado** (ollama o llama.cpp) en la URL configurada en `.env` (por defecto `http://localhost:8080`).
+
+---
+
+## TUI: corrección de envuelto y scroll horizontal (v0.9.6-epsilon)
+
+### Problema
+El widget `Log` de la TUI (`src/ui/tui.py`) mostraba scroll lateral en las respuestas largas porque:
+1. Se le pasaba el parámetro `wrap=True`, que **no existe** en `Log` de Textual 8.2.8 → `TypeError` al lanzar `compose()`.
+2. El envuelto manual usaba `shutil.get_terminal_size()` (ancho de la terminal externa), no el ancho del widget `Log` dentro de la app (más estrecho por la barra lateral).
+
+### Solución aplicada
+- Eliminado `wrap=True` del `Log` en `compose()` (línea 57).
+- `_write_wrapped` ahora usa `log_widget.size.width` para calcular el ancho de envuelto real del widget dentro de la app.
+- Eliminado el método obsoleto `_wrap_text` y la importación de `shutil`.
+- Las preguntas y respuestas quedan separadas por línea en blanco; las fuentes se envuelven al ancho del panel central sin scroll horizontal.
+
+### Archivos involucrados
+| Archivo | Cambio |
+|---|---|
+| `src/ui/tui.py` | Quitado `wrap=True`, reescrito `_write_wrapped`, eliminado `_wrap_text` y `import shutil` |
+
+### Comando de prueba
+```bash
+PYTHONPATH=. python3 src/ui/tui.py
+```
+
+### Requisito
+La TUI requiere el servidor LLM local levantado en `http://localhost:8080`.

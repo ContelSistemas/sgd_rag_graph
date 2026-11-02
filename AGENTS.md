@@ -261,3 +261,6 @@ Cuando una consulta menciona un cliente específico (ej. "villa cortes", "parque
 - **CLI** (`scripts/documentar_incidencia.py`): Document incidents from console with `--caso`, `--pruebas`, `--resolucion`
 - **API** (`src/api/main.py`): New endpoint `POST /documentar-incidencia` with `DocumentationRequest`/`DocumentationResponse`
 - **Streamlit UI** (`src/ui/app.py`): New tab "📄 Documentar Incidencia" with case/evidence/resolution text areas, LLM config, result preview, and raw LLM output expander
+
+## Sprint 1.6-epsilon Improvements (v0.9.6-epsilon — Completed)
+- **TUI wrapping fix** (`src/ui/tui.py`): Eliminado el parámetro `wrap=True` no soportado por `Log` en Textual 8.2.8 (causaba `TypeError` al lanzar `compose()`). `_write_wrapped` ahora usa `log_widget.size.width` (ancho real del widget `Log` dentro de la app, no el de la terminal externa) y escribe las líneas envueltas en un solo bloque para evitar líneas en blanco entre segmentos de un mismo párrafo. Preguntas y respuestas quedan separadas por línea en blanco; no hay scroll horizontal.
