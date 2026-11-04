@@ -36,7 +36,6 @@ Instrucciones obligatorias:
 - NO incluyas la pregunta dentro de la respuesta. No escribas "Pregunta:", "Respuesta:", "Contexto:" ni etiquetas similares.
 - Responde de forma directa y concisa, una sola vez por cada idea.
 - SI la información no está en el contexto, responde exactamente: "No hay información suficiente en el contexto para responder esta pregunta." No inventes ni cites documentos que no aparecen en el contexto.
-- Cita las fuentes al final usando el formato real del título entre corchetes, ej: [Parque Santiago - Muro de Conocimiento].
 
 Contexto:
 {context_text}

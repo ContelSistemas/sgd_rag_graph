@@ -137,13 +137,7 @@ class GraphRAGTUI(App):
             )
             answer = llm.generate_response(query, contexts)
             self.app.call_from_thread(self._write_wrapped, f"[Asistente] {answer}")
-            if contexts:
-                self.app.call_from_thread(self._query_log_write, "")
-                self.app.call_from_thread(self._query_log_write, "[Fuentes]")
-                for src in contexts:
-                    meta = src.get("metadata", {})
-                    src_line = f"- {meta.get('title', 'N/A')} ({meta.get('source_path', 'N/A')})"
-                    self.app.call_from_thread(self._write_wrapped, src_line)
+            self.app.call_from_thread(self._query_log_write, "")
             self.messages.append({"role": "assistant", "content": answer, "sources": contexts})
         except Exception as e:
             self.app.call_from_thread(self._query_log_write, f"[Error: {e}]")

@@ -77,18 +77,6 @@ with tab_chat:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-            if "sources" in message and message["sources"]:
-                with st.expander("🔍 Fuentes y Referencias de la Base del Conocimiento"):
-                    seen_sources = set()
-                    for src in message["sources"]:
-                        meta = src.get("metadata", {})
-                        title = meta.get('title', 'N/A')
-                        source_path = meta.get('source_path', 'N/A')
-                        source_key = (title, source_path)
-                        if source_key in seen_sources:
-                            continue
-                        seen_sources.add(source_key)
-                        st.write(f"- **{title}** (`{source_path}`)")
 
     if prompt := st.chat_input("Escribe tu pregunta sobre la Base del Conocimiento..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -113,28 +101,15 @@ with tab_chat:
                     answer = llm.generate_response(prompt, contexts)
                     
                     st.markdown(answer)
-                    if contexts:
-                        with st.expander("🔍 Fuentes y Referencias de la Base del Conocimiento"):
-                            seen_sources = set()
-                            for src in contexts:
-                                meta = src.get("metadata", {})
-                                title = meta.get('title', 'N/A')
-                                source_path = meta.get('source_path', 'N/A')
-                                source_key = (title, source_path)
-                                if source_key in seen_sources:
-                                    continue
-                                seen_sources.add(source_key)
-                                st.write(f"- **{title}** (`{source_path}`)")
-                                
+                    
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": answer,
-                        "sources": contexts
                     })
                 except Exception as e:
                     err_msg = f"Error al procesar la consulta: {e}"
                     st.error(err_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": err_msg, "sources": []})
+                    st.session_state.messages.append({"role": "assistant", "content": err_msg})
 
 with tab_editor:
     render_markdown_editor()
